@@ -1,0 +1,221 @@
+name: kefu-hu-gaizao
+
+x-auth-environment: &auth-environment
+  JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in the root .env}
+  JWT_ALGORITHM: HS256
+  INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in the root .env}
+
+x-python-runtime: &python-runtime
+  pull_policy: never
+  working_dir: /app
+  init: true
+  restart: unless-stopped
+  environment:
+    PYTHONUNBUFFERED: "1"
+    PYTHONDONTWRITEBYTECODE: "1"
+
+x-customer-runtime: &customer-runtime
+  <<: *python-runtime
+  image: kefu-hu-customer:local
+  env_file:
+    - ./customer-service/.env
+  environment:
+    <<: *auth-environment
+    PYTHONUNBUFFERED: "1"
+    PYTHONDONTWRITEBYTECODE: "1"
+    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-customer_service}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@postgres:5432/customer_service
+    REDIS_URL: redis://redis:6379/0
+    AI_SERVICE_URL: http://ai-service:8002
+    AI_TIMEOUT_SECONDS: "180"
+    AI_WORKER_LEASE_SECONDS: "240"
+    API_HOST: 0.0.0.0
+    API_PORT: "8000"
+    CORS_ORIGINS: '["http://localhost:5173","http://127.0.0.1:5173","http://localhost:5174","http://127.0.0.1:5174"]'
+  volumes:
+    - ./customer-service/atguigu:/app/atguigu:ro
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-customer_service}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/01-databases.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    pull_policy: never
+    restart: unless-stopped
+    command: [redis-server, --appendonly, "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ecommerce:
+    <<: *python-runtime
+    image: kefu-hu-ecommerce:latest
+    environment:
+      <<: *auth-environment
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      ECOM_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-customer_service}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@postgres:5432/ecommerce
+    volumes:
+      - ./backend/ecommerce-service/ecommerce_service:/app/ecommerce_service:ro
+    command: [uvicorn, ecommerce_service.main:app, --host, 0.0.0.0, --port, "8001"]
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  ai-service:
+    <<: *python-runtime
+    image: kefu-hu-ai-service:latest
+    env_file:
+      - ./ai-service/.env
+    environment:
+      <<: *auth-environment
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      AI_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-customer_service}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@postgres:5432/ai_customer_service
+      ECOMMERCE_BASE_URL: http://ecommerce:8001/api/v1
+      API_HOST: 0.0.0.0
+      API_PORT: "8002"
+    volumes:
+      - ./ai-service/atguigu:/app/atguigu:ro
+      - ./knowledge:/knowledge:ro
+    command: [sh, -c, "python -m atguigu.infrastructure.init_db && exec python -m atguigu.main"]
+    ports:
+      - "127.0.0.1:8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ecommerce:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  customer-service:
+    <<: *customer-runtime
+    command: [sh, -c, "python -m atguigu.infrastucture.init_db && exec python -m atguigu.main"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  ai-worker:
+    <<: *customer-runtime
+    command: [python, -m, atguigu.worker.ai.worker]
+    depends_on:
+      customer-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+
+  realtime-worker:
+    <<: *customer-runtime
+    command: [python, -m, atguigu.worker.realtime]
+    depends_on:
+      customer-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  user-frontend:
+    image: kefu-hu-user-frontend:latest
+    pull_policy: never
+    init: true
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      VITE_CUSTOMER_SERVICE_URL: http://127.0.0.1:8000
+      VITE_ECOMMERCE_SERVICE_URL: http://127.0.0.1:8001
+      VITE_AI_SERVICE_URL: http://127.0.0.1:8002
+    volumes:
+      - ./frontend/user-frontend/src:/app/src:ro
+      - ./frontend/user-frontend/public:/app/public:ro
+      - ./frontend/user-frontend/index.html:/app/index.html:ro
+      - ./frontend/user-frontend/vite.config.js:/app/vite.config.js:ro
+      - ./frontend/user-frontend/package.json:/app/package.json:ro
+    command: [npm, run, dev, --, --host, 0.0.0.0, --port, "5173"]
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      customer-service:
+        condition: service_healthy
+      ecommerce:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:5173').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  admin-frontend:
+    image: kefu-hu-admin-frontend:latest
+    pull_policy: never
+    init: true
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      VITE_CUSTOMER_SERVICE_URL: http://127.0.0.1:8000
+      VITE_ECOMMERCE_SERVICE_URL: http://127.0.0.1:8001
+      VITE_AI_SERVICE_URL: http://127.0.0.1:8002
+    volumes:
+      - ./frontend/admin-frontend/src:/app/src:ro
+      - ./frontend/admin-frontend/index.html:/app/index.html:ro
+      - ./frontend/admin-frontend/vite.config.js:/app/vite.config.js:ro
+      - ./frontend/admin-frontend/package.json:/app/package.json:ro
+    command: [npm, run, dev, --, --host, 0.0.0.0, --port, "5174"]
+    ports:
+      - "127.0.0.1:5174:5174"
+    depends_on:
+      customer-service:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:5174').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+volumes:
+  postgres-data:
+  redis-data:
