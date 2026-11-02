@@ -113,8 +113,18 @@ class MultiAgentExecutor:
             route = RouteDecision(route_kind="CHAT", reason="无业务上下文的问候")
         else:
             route = await self.caller.call(RouteDecision, ROUTER_PROMPT, self.messages, "router")
-        self._check_bindings(route.entity_hints)
+        verified_hints = []
+        for hint in route.entity_hints:
+            try:
+                self._check_bindings([hint])
+            except ValueError:
+                # The original product name/question is preserved for domain search.
+                self.trace.setdefault("discarded_entity_hints", []).append(hint.model_dump(mode="json"))
+            else:
+                verified_hints.append(hint)
+        route = route.model_copy(update={"entity_hints": verified_hints})
         self.trace["route"] = route.model_dump(mode="json")
+        self.context = replace(self.context, allow_page_actions=route.operation_intent != "QUERY")
         target = {"SINGLE": "direct", "MULTI": "plan"}.get(route.route_kind, "terminal")
         self.state = {**state, "route": route, "next_node": target}
         return self.state
@@ -163,14 +173,17 @@ class MultiAgentExecutor:
             context["instruction"] = "必须完整保留已有任务及其ID/goal/依赖，追加任务引用已有成功证据，不重复查询已完成事实。"
         plan = await self.caller.call(TaskPlan, PLANNER_PROMPT,
             [*self.messages, HumanMessage(json.dumps(context, ensure_ascii=False))], "planner")
+        if existing:
+            # Previously executed tasks are immutable server state, not text for the model to reproduce.
+            by_domain = {task.domain: task for task in existing.tasks}
+            aliases = {task.task_id: by_domain[task.domain].task_id for task in plan.tasks if task.domain in by_domain}
+            additions = [task.model_copy(update={"depends_on": [aliases.get(key, key) for key in task.depends_on]})
+                         for task in plan.tasks if task.domain not in by_domain]
+            plan = TaskPlan(tasks=[*existing.tasks, *additions])
         if len(plan.tasks) > self.settings.multi_max_tasks:
             raise ValueError("计划超过根任务预算")
         if not set(state["route"].domains) <= {task.domain for task in plan.tasks}:
             raise ValueError("计划遗漏用户要求的领域")
-        if existing:
-            by_id = {task.task_id: task for task in plan.tasks}
-            if any(by_id.get(task.task_id) != task for task in existing.tasks):
-                raise ValueError("补充计划改写了已执行任务")
         for task in plan.tasks:
             self._check_bindings(task.entity_bindings)
         self.trace.setdefault("plans", []).append(plan.model_dump(mode="json"))
@@ -274,6 +287,7 @@ class MultiAgentExecutor:
         try:
             return self.validator.validate_with_calls(output, calls)
         except ValueError as exc:
+            self.trace.setdefault("final_validation_errors", []).append(str(exc)[:600])
             # One bounded summary correction; domain queries are not repeated.
             corrected = await self.caller.call(AgentOutput, SYNTHESIS_PROMPT,
                 [*self.messages, HumanMessage(json.dumps({"candidate": output.model_dump(mode="json"),
@@ -367,8 +381,8 @@ class MultiAgentExecutor:
                 knowledge_references=list(dict.fromkeys(key for part in parts for key in part.knowledge_references)))
             try:
                 return self.validator.validate_with_calls(output, await self._eligible_calls())
-            except ValueError:
-                pass
+            except ValueError as exc:
+                self.trace["partial_validation_error"] = str(exc)[:600]
         return ValidatedAgentOutput(reply_type="DECLINE", reply_content="本次暂时未能完成可靠的查询，请稍后重试或联系人工客服。")
 
     def _check_bindings(self, bindings, state=None):

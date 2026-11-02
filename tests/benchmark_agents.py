@@ -89,7 +89,7 @@ def run_case(case, mode, secret):
               "no_degradation": not trace.get("degraded"),
               "no_unexpected_action": bool(case.get("action")) or not content.get("action")}
     if mode == "multi":
-        route = trace.get("route", {})
+        route = trace.get("escalation") or trace.get("route", {})
         allowed_domains = case.get("acceptable_domains", [case["domains"]])
         checks["route_domains"] = any(set(route.get("domains", [])) == set(domains) for domains in allowed_domains)
         tasks = detail.get("tasks", [])
@@ -99,6 +99,8 @@ def run_case(case, mode, secret):
     if case.get("minimum_facts"):
         paths = {fact["field_path"].split(".")[-1] for fact in content.get("business_facts", [])}
         checks["fact_references"] = set(case["minimum_facts"]) <= paths
+    if case.get("tool_any"):
+        checks["required_tool_alternatives"] = all(set(group) & actual_tools for group in case["tool_any"])
     if case.get("policy"):
         checks["policy_sources"] = bool(content.get("sources"))
     if case.get("action"):
@@ -108,6 +110,8 @@ def run_case(case, mode, secret):
         "latency_ms": detail["run"].get("latency_ms"), "round_trip_ms": elapsed,
         "input_tokens": detail["run"]["input_tokens"], "output_tokens": detail["run"]["output_tokens"],
         "model_calls": trace.get("budget", {}).get("model_calls"), "tools": sorted(actual_tools),
+        "initial_route": trace.get("route"), "route_escalated": bool(trace.get("escalation")),
+        "model_configuration": trace.get("model_configuration"),
         "failed_task_attempts": sum(task["state"] == "FAILED" for task in detail.get("tasks", [])),
         "snapshot_digest": digest(before), "snapshot_after_digest": digest(after),
         "event": event, "execution_trace": trace}

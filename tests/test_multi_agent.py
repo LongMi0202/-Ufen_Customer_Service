@@ -13,7 +13,7 @@ from atguigu.agent.llm.output import AgentOutput, BusinessFactReference
 from atguigu.agent.multi.budget import BudgetExceeded, EvidenceConflict, RunSuperseded, SharedBudget, ValidityUnavailable
 from atguigu.agent.harness.tools.snapshot import ToolCallSnapshot
 from atguigu.agent.multi.executor import MultiAgentExecutor
-from atguigu.agent.multi.protocol import DomainResult, RouteDecision, TaskPlan, TaskSpec, SupervisorReview
+from atguigu.agent.multi.protocol import Domain, DomainResult, RouteDecision, TaskPlan, TaskSpec, SupervisorReview
 from atguigu.app.schemas.run import AgentRunRequest
 from atguigu.common.config import get_settings
 
@@ -172,6 +172,26 @@ class GraphTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(FakeCaller.stages, ["router"])
         self.assertEqual(len(self.events), 2)
 
+    async def test_direct_escalation_preserves_executed_task_on_server(self):
+        FakeCaller.decisions = {
+            "router": RouteDecision(route_kind="SINGLE", domains=["policy"], reason="test"),
+            "planner": TaskPlan(tasks=[TaskSpec(task_id="OLD_ALIAS", domain="policy", goal="model rewrote goal"),
+                TaskSpec(task_id="P", domain="product", goal="商品限额", depends_on=["OLD_ALIAS"])]),
+            "supervisor_review": SupervisorReview(decision="FINISH"),
+            "synthesis": AgentOutput(reply_type="ANSWER", reply_content="查询完成")}
+        original = self.fake_run
+        async def escalate(spec, *args, **kwargs):
+            result, db_id = await original(spec, *args, **kwargs)
+            if spec.task_id == "DIRECT":
+                result = result.model_copy(update={"result_status":"PARTIAL", "required_domains":[Domain.PRODUCT]})
+            return result, db_id
+        self.fake_run = escalate
+        result = await self.run_graph("商品的个人限额及项目积分规则")
+        self.assertEqual(result.reply_type,"ANSWER")
+        self.assertEqual([event[1] for event in self.events if event[0]=="start"],["DIRECT","P"])
+        self.assertEqual(self.executor.state["plan"].tasks[0].goal,"商品的个人限额及项目积分规则")
+        self.assertEqual(self.executor.state["plan"].tasks[1].depends_on,["DIRECT"])
+
     async def test_parallel_and_dependency_order(self):
         FakeCaller.decisions = {
             "router": RouteDecision(route_kind="MULTI", domains=["order", "points", "policy"], reason="test"),
@@ -241,6 +261,16 @@ class GraphTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.executor._constrain_action(output).page_action_request)
         self.executor.state["route"].operation_intent = "WRITE_GUIDANCE"
         self.assertIsNotNone(self.executor._constrain_action(output).page_action_request)
+
+    async def test_product_name_hint_is_discarded_and_search_still_runs(self):
+        from atguigu.agent.multi.protocol import EntityBinding
+        FakeCaller.decisions = {"router": RouteDecision(route_kind="SINGLE", domains=["product"], reason="test",
+            entity_hints=[EntityBinding(entity_type="product", entity_id="Aurora Pro耳机")])}
+        output = await self.run_graph("Aurora Pro耳机需要多少积分")
+        self.assertEqual(output.reply_type, "ANSWER")
+        self.assertEqual(self.executor.state["route"].entity_hints, [])
+        self.assertEqual(len(self.executor.trace["discarded_entity_hints"]), 1)
+        self.assertEqual(self.events[0][0], "start")
 
     async def test_order_and_refund_status_are_different_facts(self):
         def result(task_id, domain, evidence_id, value):

@@ -21,6 +21,15 @@ def scalar_text(value):
     return str(value)
 
 
+def read_field(value, path):
+    """Read a dotted field or nonnegative JSON array index; never eval a model expression."""
+    if not re.fullmatch(r"[A-Za-z_]\w*(?:\[\d+\])?(?:\.[A-Za-z_]\w*(?:\[\d+\])?)*", path):
+        raise KeyError(path)
+    for key, index in re.findall(r"([A-Za-z_]\w*)|\[(\d+)\]", path):
+        value = value[key] if key else value[int(index)]
+    return value
+
+
 def validate_evidence(output, calls):
     successful=[c for c in calls if c.success is True and c.result]
     evidence={c.result.get("evidence_id"):c for c in successful}
@@ -35,8 +44,8 @@ def validate_evidence(output, calls):
             if fact.entity_id not in {str(obj[k]) for k in ("id","account_id","order_id","product_id","batch_id") if k in obj}:continue
             value=obj
             try:
-                for key in fact.field_path.split("."):value=value[key]
-            except (KeyError,TypeError):continue
+                value=read_field(value,fact.field_path)
+            except (KeyError,TypeError,IndexError,ValueError):continue
             if isinstance(value,(dict,list)) or scalar_text(value)!=fact.value:continue
             matched=True
             break

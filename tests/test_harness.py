@@ -5,10 +5,12 @@ from atguigu.agent.harness.knowledge.service import KnowledgeQueryService
 from atguigu.agent.harness.validator.evidence import validate_evidence
 from atguigu.agent.harness.errors import AgentOutputValidationError
 from atguigu.agent.llm.output import AgentOutput, BusinessFactReference
+from atguigu.agent.harness.validator.answer import AnswerValidator
+from atguigu.agent.harness.validator.evidence import read_field
 
 
 def call(data, name="get_points_account"):
-    return SimpleNamespace(success=True,tool_name=name,result={"evidence_id":"call_test","data":data})
+    return SimpleNamespace(success=True,tool_name=name,arguments={},result={"evidence_id":"call_test","data":data})
 
 
 def output(value="8000",entity="PA_A",field="available_points"):
@@ -48,6 +50,22 @@ class EvidenceTests(unittest.TestCase):
 
 
 class PolicyTests(unittest.TestCase):
+    def test_array_field_paths_are_read_without_executing_expressions(self):
+        self.assertEqual(read_field({"items":[{"product_id":"PRODUCT_A"}]}, "items[0].product_id"), "PRODUCT_A")
+        for path in ("items[-1]", "__import__('os')", "items[0:2]"):
+            with self.assertRaises(KeyError):
+                read_field({"items":[]}, path)
+
+    def test_verified_rule_quote_is_not_current_order_status(self):
+        business=call({"id":"ORDER_A","status":"completed"},"get_order")
+        policy=call([{"knowledge_id":"RULE_A","content":"已发货不能直接取消，应申请售后。"}],"search_knowledge")
+        answer=AgentOutput(reply_type="ANSWER",reply_content="订单已完成。规则说明：“已发货不能直接取消，应申请售后”。",knowledge_references=["RULE_A"])
+        self.assertEqual(AnswerValidator().validate(answer,(business,policy)),answer)
+        with self.assertRaises(AgentOutputValidationError):
+            AnswerValidator().validate(answer.model_copy(update={"reply_content":"该订单已发货。"}),(business,policy))
+        with self.assertRaises(AgentOutputValidationError):
+            AnswerValidator().validate(answer.model_copy(update={"knowledge_references":[]}),(business,policy))
+
     def test_tenant_project_and_external_scope(self):
         service=KnowledgeQueryService()
         docs=asyncio.run(service.search("积分有效期", "tenant_a","welfare_a"))

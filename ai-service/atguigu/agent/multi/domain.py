@@ -49,8 +49,9 @@ class DomainRunner:
         task_id = f"task_{uuid4().hex}"
         skill = SKILL_CATALOG.get_skill(spec.domain.skill)
         context = replace(root_context, task_id=task_id, allowed_tool_names=frozenset(skill.tools),
+            domain_name=spec.domain.value,
             bound_entities=tuple((item.entity_type, item.entity_id) for item in spec.entity_bindings))
-        task_input = {"task": spec.model_dump(mode="json"), "direct": direct,
+        task_input = {"task": spec.model_dump(mode="json"), "direct": direct, "allow_page_actions": context.allow_page_actions,
             "scope": {"tenant_id": context.tenant_id, "welfare_project_id": context.welfare_project_id,
                       "user_id": context.user_id},
             "upstream": [result.model_dump(mode="json") for result in upstream]}
@@ -60,6 +61,7 @@ class DomainRunner:
         await self.audit.start(task_id=task_id, run_id=context.run_id, spec=spec, context=task_input, attempt=attempt)
         started = perf_counter()
         state, error, result = "FAILED", None, None
+        corrections = []
         try:
             async with asyncio.timeout(min(budget.settings.multi_task_timeout_seconds, budget.remaining_seconds)):
                 async with budget.semaphore, self.process_semaphore:
@@ -71,6 +73,10 @@ class DomainRunner:
                             config={"recursion_limit": 32})
                         try:
                             answer = DomainAnswer.model_validate(raw["structured_response"])
+                            if not context.allow_page_actions:
+                                answer = answer.model_copy(update={"action_suggestions": [],
+                                    "candidate_reply": answer.candidate_reply.model_copy(update={"page_action_request": None})
+                                    if answer.candidate_reply else None})
                             own_calls = await self.audit.calls(context.run_id, {task_id})
                             calls = (*upstream_calls, *own_calls)
                             answer = self._validate(answer, calls)
@@ -80,6 +86,7 @@ class DomainRunner:
                             state = answer.result_status
                             break
                         except (ValueError, AgentOutputValidationError) as exc:
+                            corrections.append(str(exc)[:600])
                             logger.info("领域结果纠错 domain=%s task_id=%s reason=%s", spec.domain, task_id, str(exc)[:500])
                             if attempt:
                                 raise
@@ -99,8 +106,11 @@ class DomainRunner:
                 summary="该领域任务尚未取得可用于回答的可靠结果。", missing_information=[spec.goal],
                 error=error, observed_at=get_utcnow().isoformat())
         finally:
+            audit_result = result.model_dump(mode="json") if result else None
+            if audit_result is not None and corrections:
+                audit_result["validation_corrections"] = corrections
             await asyncio.shield(self.audit.finish(task_id, state,
-                result.model_dump(mode="json") if result else None, error,
+                audit_result, error,
                 int((perf_counter() - started) * 1000), dict(budget.task_usage[task_id])))
         return result, task_id
 
@@ -112,7 +122,7 @@ class DomainRunner:
         self.validator.validate_with_calls(summary, calls)
         known_ids = {str(obj[key]) for call in calls if call.success
             for obj in entities(call.result.get("data"))
-            for key in ("id", "account_id", "order_id", "product_id", "batch_id") if key in obj}
+            for key in ("id", "account_id", "order_id", "product_id", "batch_id", "after_sale_id") if obj.get(key) is not None}
         if any(entity.entity_id not in known_ids for entity in answer.entities):
             raise ValueError("领域实体未被成功工具确认")
         if answer.result_status == "SUCCESS" and not any(call.success for call in calls):

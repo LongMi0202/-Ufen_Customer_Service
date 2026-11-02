@@ -22,5 +22,9 @@ class ModeExecutor:
             self.token_usage = output.token_usage
             return output
         finally:
-            self.trace = getattr(executor, "trace", None)
+            settings = get_settings()
+            self.trace = {**(getattr(executor, "trace", None) or {}), "model_configuration": {
+                "provider": settings.llm_provider, "model": settings.llm_model, "temperature": 0,
+                "thinking_mode": settings.llm_thinking_mode, "timeout_seconds": settings.llm_timeout_seconds,
+                "provider_retries": 0 if mode == "multi" else "provider_default"}}
             self.token_usage = getattr(executor, "token_usage", self.token_usage)

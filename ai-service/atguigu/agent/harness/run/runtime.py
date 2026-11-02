@@ -21,6 +21,8 @@ class AgentRuntimeContext:
     task_id: str | None = None
     allowed_tool_names: frozenset[str] | None = None
     bound_entities: tuple[tuple[str, str], ...] = ()
+    domain_name: str | None = None
+    allow_page_actions: bool = True
     budget: Any = None  # Request-local shared budget; never serialized into graph state.
 
 

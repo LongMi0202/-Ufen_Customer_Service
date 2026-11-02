@@ -5,6 +5,7 @@ from atguigu.agent.harness.tools.catalog import TOOL_CATALOG, ToolCategory
 from atguigu.agent.harness.tools.output import ToolFailureType
 from atguigu.agent.harness.tools.snapshot import ToolCallSnapshot
 from atguigu.agent.llm.output import AgentOutput, ReplyType
+import re
 
 
 class AnswerValidationError(AgentOutputValidationError):
@@ -43,12 +44,25 @@ class AnswerValidator:
 
         # 3. 使用成功工具结果校验回答中的业务事实
         self._validate_facts(
-            output.reply_content,
+            self._without_verified_policy_quotes(output, tool_calls),
             successful_business_calls
         )
 
         # 4. 返回通过失败降级和事实校验的原始输出
         return output
+
+    @staticmethod
+    def _without_verified_policy_quotes(output, calls):
+        cited = set(output.knowledge_references)
+        policies = [item["content"] for call in calls if call.success and call.tool_name == "search_knowledge"
+                    for item in (call.result.get("data") or []) if item.get("knowledge_id") in cited]
+        def replace_quote(match):
+            text = match.group(1)
+            if len(text) >= 6 and any(text in policy for policy in policies):
+                return "政策条款引文"
+            return match.group(0)
+        # A rule's verbatim, retrieved quotation is not a claim about the current order state.
+        return re.sub(r"[“「]([^”」\n]+)[”」]", replace_quote, output.reply_content)
 
     @staticmethod
     def _get_business_calls(tool_calls: tuple[ToolCallSnapshot, ...]) -> tuple[ToolCallSnapshot, ...]:

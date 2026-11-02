@@ -100,10 +100,11 @@ class ToolExecutor:
             latency_ms
         )
         # 5. 序列化成模型可以读取的 JSON 文本
-        return json.dumps(
-            tool_result.model_dump(mode="json"),
-            ensure_ascii=False
-        )
+        model_result = tool_result.model_dump(mode="json")
+        if runtime_context.domain_name == "order" and tool_name == "get_order" and isinstance(model_result.get("data"), dict):
+            # Keep raw audit evidence; the order agent sees order facts, not another domain's refund details.
+            model_result["data"].pop("refund", None)
+        return json.dumps(model_result, ensure_ascii=False)
 
     async def _create_tool_call(
             self,
