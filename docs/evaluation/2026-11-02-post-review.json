@@ -1,0 +1,776 @@
+{
+  "source_commit": "46abece",
+  "scope": "Targeted checks after manual review; does not replace independent semantic grading",
+  "rows": [
+    {
+      "case_id": "expiry_redemption",
+      "mode": "single",
+      "run_id": "run_0439edaaecbb49299701b9d9ab32285b",
+      "checks": {
+        "reply_type": true,
+        "required_tools": true,
+        "snapshot_unchanged": true,
+        "no_degradation": true,
+        "no_unexpected_action": true,
+        "fact_references": true
+      },
+      "smoke_checks_passed": true,
+      "semantic_review": "pending",
+      "latency_ms": 13158,
+      "round_trip_ms": 13260,
+      "input_tokens": 25685,
+      "output_tokens": 2046,
+      "model_calls": 7,
+      "tools": [
+        "get_expiring_points",
+        "get_points_account",
+        "quote_redemption",
+        "search_products"
+      ],
+      "initial_route": null,
+      "route_escalated": false,
+      "model_configuration": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "temperature": 0,
+        "thinking_mode": "disabled",
+        "timeout_seconds": 30.0,
+        "domain_output_limit": "provider_default",
+        "summary_output_limit": "provider_default",
+        "provider_retries": "provider_default"
+      },
+      "failed_task_attempts": 0,
+      "snapshot_digest": "54e7c667ebfffd01b3786a63b40b39ce95c45b64454950b85ebdf54a65458978",
+      "snapshot_after_digest": "54e7c667ebfffd01b3786a63b40b39ce95c45b64454950b85ebdf54a65458978",
+      "event": {
+        "event_type": "run_completed",
+        "event_data": {
+          "run_id": "run_0439edaaecbb49299701b9d9ab32285b",
+          "message_id": "msg_f7a5566951714bb98348b7e1a005d25f",
+          "content": {
+            "text": "为您查到以下信息（当前项目：welfare_a，员工 user_002）：\n\n**一、即将过期的积分**\n- 未来 30 天内到期的积分共 **1000 分**，来自批次 PB_user_002_welfare_a_0（来源：演示福利发放），到期时间 **2026-11-20 22:20:38（北京时间）**。\n- 您当前账户可用积分为 **8000 分**，其中这 1000 分属于临期部分，建议优先使用。\n\n**二、Aurora Pro 降噪耳机**\n- 商品编号：PRODUCT_001，头戴式主动降噪蓝牙耳机，续航 40 小时，曜石黑，每人限兑 5 件。\n- 积分价：**800 分/件**。\n\n**三、兑换资格预检（1 件）**\n- 需要积分 800 分，您可用 8000 分，**具备兑换资格**；当前实时库存 24 件，无其他限制原因。\n- 提示：预检不扣积分、不锁库存，正式提交兑换时会重新校验积分与库存。\n\n如需兑换，可在商品页面确认提交；我这边只做查询，不会代为扣分或下单。",
+            "reply_type": "ANSWER",
+            "sources": [],
+            "business_facts": [
+              {
+                "tool_call_id": "call_00_OJ8Rjcj9cPngnViUKCMf7976",
+                "entity_id": "PA_user_002_welfare_a",
+                "field_path": "total_points",
+                "value": "1000",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "call_00_OJ8Rjcj9cPngnViUKCMf7976",
+                "entity_id": "PB_user_002_welfare_a_0",
+                "field_path": "points",
+                "value": "1000",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "call_00_OJ8Rjcj9cPngnViUKCMf7976",
+                "entity_id": "PB_user_002_welfare_a_0",
+                "field_path": "expires_at",
+                "value": "2026-11-20T22:20:38.102912+08:00",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "call_01_B0vwhbSiNwrobK3rFwAu3608",
+                "entity_id": "PA_user_002_welfare_a",
+                "field_path": "available_points",
+                "value": "8000",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "call_01_B0vwhbSiNwrobK3rFwAu3608",
+                "entity_id": "PA_user_002_welfare_a",
+                "field_path": "expiring_points",
+                "value": "1000",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "call_00_gPNuQZRMwakglKUH5ttn6303",
+                "entity_id": "PRODUCT_001",
+                "field_path": "points_price",
+                "value": "800",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "call_00_gPNuQZRMwakglKUH5ttn6303",
+                "entity_id": "PRODUCT_001",
+                "field_path": "per_user_limit",
+                "value": "5",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "call_00_jojfjiGiVSmjR0lSymCk5241",
+                "entity_id": "PRODUCT_001",
+                "field_path": "required_points",
+                "value": "800",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "call_00_jojfjiGiVSmjR0lSymCk5241",
+                "entity_id": "PRODUCT_001",
+                "field_path": "eligible",
+                "value": "true",
+                "unit": "status"
+              },
+              {
+                "tool_call_id": "call_00_jojfjiGiVSmjR0lSymCk5241",
+                "entity_id": "PRODUCT_001",
+                "field_path": "stock",
+                "value": "24",
+                "unit": "text"
+              }
+            ]
+          }
+        }
+      },
+      "execution_trace": {
+        "graph_version": "welfare-single-v1",
+        "budget": {
+          "input_tokens": 25685,
+          "output_tokens": 2046,
+          "model_calls": 7
+        },
+        "model_configuration": {
+          "provider": "openai_compatible",
+          "model": "deepseek-chat",
+          "temperature": 0,
+          "thinking_mode": "disabled",
+          "timeout_seconds": 30.0,
+          "domain_output_limit": "provider_default",
+          "summary_output_limit": "provider_default",
+          "provider_retries": "provider_default"
+        }
+      },
+      "beijing_expiry_oracle": true
+    },
+    {
+      "case_id": "expiry_redemption",
+      "mode": "multi",
+      "run_id": "run_72fd8c712dfc4130b9a5794aca76c5ea",
+      "checks": {
+        "reply_type": true,
+        "required_tools": true,
+        "snapshot_unchanged": true,
+        "no_degradation": true,
+        "no_unexpected_action": true,
+        "route_domains": true,
+        "required_domains_have_result": true,
+        "no_running_tasks": true,
+        "fact_references": true
+      },
+      "smoke_checks_passed": true,
+      "semantic_review": "pending",
+      "latency_ms": 13943,
+      "round_trip_ms": 13960,
+      "input_tokens": 33412,
+      "output_tokens": 2968,
+      "model_calls": 10,
+      "tools": [
+        "get_expiring_points",
+        "quote_redemption",
+        "search_products"
+      ],
+      "initial_route": {
+        "route_kind": "MULTI",
+        "domains": [
+          "points",
+          "product"
+        ],
+        "operation_intent": "QUERY",
+        "entity_hints": [],
+        "clarification": null,
+        "reason": "用户同时询问积分临期情况（points）和指定商品的积分价与兑换资格（product，需商品工具或兑换预检确认），属两个领域能力。"
+      },
+      "route_escalated": false,
+      "model_configuration": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "temperature": 0,
+        "thinking_mode": "disabled",
+        "timeout_seconds": 30.0,
+        "domain_output_limit": 2000,
+        "summary_output_limit": 4000,
+        "provider_retries": 0
+      },
+      "failed_task_attempts": 0,
+      "snapshot_digest": "54e7c667ebfffd01b3786a63b40b39ce95c45b64454950b85ebdf54a65458978",
+      "snapshot_after_digest": "54e7c667ebfffd01b3786a63b40b39ce95c45b64454950b85ebdf54a65458978",
+      "event": {
+        "event_type": "run_completed",
+        "event_data": {
+          "run_id": "run_72fd8c712dfc4130b9a5794aca76c5ea",
+          "message_id": "msg_19ecad1c11be495fa41d6f439c9584e0",
+          "content": {
+            "text": "为您查询到以下信息（查询时点：2026-11-02）：\n\n一、即将过期积分（未来30天内）\n- 账户 PA_user_002_welfare_a 临期积分合计：1000 分\n- 明细：批次 PB_user_002_welfare_a_0，1000 分，来源“演示福利发放”，到期时间 2026-11-20 22:20:38（北京时间）\n\n二、Aurora Pro 降噪耳机（PRODUCT_001，数码音频，状态 active）\n- 积分价：800 分/件\n- 个人限兑：5 件\n- 兑换预检（数量 1）：需 800 积分，账户可用积分 8000，库存 24，eligible=true，无拦截原因\n- 结论：您目前有资格兑换 1 件。注意预检不扣积分、不锁库存，提交兑换时会重新校验积分与库存。\n\n另外提示：您的临期 1000 分（2026-11-20 到期）足以覆盖这件商品的 800 分，若想优先消耗临期积分，建议在到期前完成兑换。如需我帮您打开兑换页面，请告知。",
+            "reply_type": "ANSWER",
+            "sources": [],
+            "business_facts": [
+              {
+                "tool_call_id": "evidence_648e0ffecbac45d2bea48eb5938ead0f",
+                "entity_id": "PA_user_002_welfare_a",
+                "field_path": "total_points",
+                "value": "1000",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "evidence_648e0ffecbac45d2bea48eb5938ead0f",
+                "entity_id": "PB_user_002_welfare_a_0",
+                "field_path": "points",
+                "value": "1000",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "evidence_648e0ffecbac45d2bea48eb5938ead0f",
+                "entity_id": "PB_user_002_welfare_a_0",
+                "field_path": "expires_at",
+                "value": "2026-11-20T22:20:38.102912+08:00",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_648e0ffecbac45d2bea48eb5938ead0f",
+                "entity_id": "PB_user_002_welfare_a_0",
+                "field_path": "source",
+                "value": "演示福利发放",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_078252e897de4fc68630736945f665ff",
+                "entity_id": "PRODUCT_001",
+                "field_path": "name",
+                "value": "Aurora Pro 降噪耳机",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_078252e897de4fc68630736945f665ff",
+                "entity_id": "PRODUCT_001",
+                "field_path": "points_price",
+                "value": "800",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "evidence_078252e897de4fc68630736945f665ff",
+                "entity_id": "PRODUCT_001",
+                "field_path": "per_user_limit",
+                "value": "5",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_078252e897de4fc68630736945f665ff",
+                "entity_id": "PRODUCT_001",
+                "field_path": "status",
+                "value": "active",
+                "unit": "status"
+              },
+              {
+                "tool_call_id": "evidence_63d8651256ec40d4b298fbc96f1bedfc",
+                "entity_id": "PRODUCT_001",
+                "field_path": "required_points",
+                "value": "800",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "evidence_63d8651256ec40d4b298fbc96f1bedfc",
+                "entity_id": "PRODUCT_001",
+                "field_path": "available_points",
+                "value": "8000",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "evidence_63d8651256ec40d4b298fbc96f1bedfc",
+                "entity_id": "PRODUCT_001",
+                "field_path": "stock",
+                "value": "24",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_63d8651256ec40d4b298fbc96f1bedfc",
+                "entity_id": "PRODUCT_001",
+                "field_path": "eligible",
+                "value": "true",
+                "unit": "status"
+              }
+            ]
+          }
+        }
+      },
+      "execution_trace": {
+        "graph_version": "welfare-multi-v1",
+        "prompt_version": "welfare-multi-v1",
+        "model_stages": [
+          {
+            "stage": "router",
+            "attempt": 1,
+            "success": true,
+            "token_usage": {
+              "input_tokens": 1337,
+              "output_tokens": 165,
+              "total_tokens": 1502,
+              "input_token_details": {
+                "cache_read": 0
+              },
+              "output_token_details": {}
+            }
+          },
+          {
+            "stage": "planner",
+            "attempt": 1,
+            "success": true,
+            "token_usage": {
+              "input_tokens": 1479,
+              "output_tokens": 180,
+              "total_tokens": 1659,
+              "input_token_details": {
+                "cache_read": 384
+              },
+              "output_token_details": {}
+            }
+          },
+          {
+            "stage": "supervisor_review",
+            "attempt": 1,
+            "success": true,
+            "token_usage": {
+              "input_tokens": 2906,
+              "output_tokens": 34,
+              "total_tokens": 2940,
+              "input_token_details": {
+                "cache_read": 384
+              },
+              "output_token_details": {}
+            }
+          },
+          {
+            "stage": "synthesis",
+            "attempt": 1,
+            "success": true,
+            "token_usage": {
+              "input_tokens": 4018,
+              "output_tokens": 1056,
+              "total_tokens": 5074,
+              "input_token_details": {
+                "cache_read": 128
+              },
+              "output_token_details": {}
+            }
+          }
+        ],
+        "discarded_entity_hints": [
+          {
+            "entity_type": "product",
+            "entity_id": "Aurora Pro降噪耳机"
+          }
+        ],
+        "route": {
+          "route_kind": "MULTI",
+          "domains": [
+            "points",
+            "product"
+          ],
+          "operation_intent": "QUERY",
+          "entity_hints": [],
+          "clarification": null,
+          "reason": "用户同时询问积分临期情况（points）和指定商品的积分价与兑换资格（product，需商品工具或兑换预检确认），属两个领域能力。"
+        },
+        "plans": [
+          {
+            "plan_version": 1,
+            "tasks": [
+              {
+                "task_id": "T1",
+                "domain": "points",
+                "goal": "查询当前账户即将过期的积分（临期积分明细：临期积分数额与到期时间）",
+                "depends_on": [],
+                "entity_bindings": [],
+                "expected_outputs": [
+                  "临期积分列表（含积分数额与到期时间）"
+                ]
+              },
+              {
+                "task_id": "T2",
+                "domain": "product",
+                "goal": "按名称“Aurora Pro降噪耳机”搜索商品，确认商品编号、所需积分价，并执行兑换预检判断当前用户是否有资格兑换一件",
+                "depends_on": [],
+                "entity_bindings": [],
+                "expected_outputs": [
+                  "商品编号与名称",
+                  "兑换所需积分",
+                  "兑换预检结果（是否具备兑换一件的资格及原因）"
+                ]
+              }
+            ]
+          }
+        ],
+        "review": {
+          "decision": "FINISH",
+          "additional_tasks": [],
+          "message": ""
+        },
+        "budget": {
+          "model_calls": 10,
+          "tool_calls": 5,
+          "task_attempts": 2,
+          "input_tokens": 33412,
+          "output_tokens": 2968,
+          "estimated_tokens": 0,
+          "reserved_tokens": 0,
+          "token_budget": 60000
+        },
+        "model_configuration": {
+          "provider": "openai_compatible",
+          "model": "deepseek-chat",
+          "temperature": 0,
+          "thinking_mode": "disabled",
+          "timeout_seconds": 30.0,
+          "domain_output_limit": 2000,
+          "summary_output_limit": 4000,
+          "provider_retries": 0
+        }
+      },
+      "beijing_expiry_oracle": true
+    },
+    {
+      "case_id": "aftersale_policy",
+      "mode": "multi",
+      "run_id": "run_fdfb43faca204adf931f7b0a36475e7b",
+      "checks": {
+        "reply_type": true,
+        "required_tools": true,
+        "snapshot_unchanged": true,
+        "no_degradation": true,
+        "no_unexpected_action": true,
+        "route_domains": true,
+        "required_domains_have_result": true,
+        "no_running_tasks": true,
+        "policy_sources": true
+      },
+      "smoke_checks_passed": true,
+      "semantic_review": "pending",
+      "latency_ms": 15767,
+      "round_trip_ms": 15784,
+      "input_tokens": 31445,
+      "output_tokens": 3556,
+      "model_calls": 10,
+      "tools": [
+        "get_order",
+        "list_after_sales",
+        "search_knowledge"
+      ],
+      "initial_route": {
+        "route_kind": "MULTI",
+        "domains": [
+          "order",
+          "aftersales",
+          "policy"
+        ],
+        "operation_intent": "QUERY",
+        "entity_hints": [
+          {
+            "entity_type": "order",
+            "entity_id": "ORDER_A_004"
+          }
+        ],
+        "clarification": null,
+        "reason": "用户同时询问具体订单的订单状态、实际售后状态，以及该福利项目的退货退款规则，需订单、售后、规则三个领域能力。"
+      },
+      "route_escalated": false,
+      "model_configuration": {
+        "provider": "openai_compatible",
+        "model": "deepseek-chat",
+        "temperature": 0,
+        "thinking_mode": "disabled",
+        "timeout_seconds": 30.0,
+        "domain_output_limit": 2000,
+        "summary_output_limit": 4000,
+        "provider_retries": 0
+      },
+      "failed_task_attempts": 0,
+      "snapshot_digest": "5c4253d737666309680b8af2aef36260024b3c4ddde3d8c2469f64f38dfe6f76",
+      "snapshot_after_digest": "5c4253d737666309680b8af2aef36260024b3c4ddde3d8c2469f64f38dfe6f76",
+      "event": {
+        "event_type": "run_completed",
+        "event_data": {
+          "run_id": "run_fdfb43faca204adf931f7b0a36475e7b",
+          "message_id": "msg_28daa852d05244ebab071fe857ca122d",
+          "content": {
+            "text": "【订单状态】ORDER_A_004 当前订单状态为「已完成（completed）」，创建时间 2026-10-31 22:20:38（北京时间），支付方式为积分支付，消费积分 520 分，现金金额 0.0 元；商品为 Trail X1 智能运动手表（PRODUCT_003），数量 1，单价 0.0 元。\n\n【售后状态】该订单关联一条售后记录 AS_A_001，类型为退货（return），当前处理状态为「处理中（processing）」，申请创建时间 2026-10-31 22:20:38（北京时间），备注为“演示：退货已寄回，等待审核”。售后状态以该售后单为准，目前尚未审核完成。\n\n【本项目退货退款适用规则】（以下为规则条款，不代表本订单已实际发生的结果）\n1. 售后申请与审核（DEMO_AFTERSALE）：员工可在订单页面提交退款、退货或换货申请，客服核对后处理；“申请受理、审核完成、退分到账是不同状态”；“退款退货可在人工确认后执行整单退分，换货不触发退分”；“是否已退、数量及原因以关联订单、售后记录和积分退分工具结果为准”。\n2. 积分有效期（DEMO_A_EXPIRY）：常规演示批次自发放起 365 天内有效，活动临期批次以具体到期日为准；“兑换优先消耗最早到期的有效积分”；“不可自行延期，退回积分沿用原批次期限”。\n3. 兑换与预检（DEMO_REDEEM）：当前版本仅支持实物商品纯积分兑换，所需积分取决于当前福利项目配置，不设通用人民币兑积分比例；兑换前需检查项目商品范围、账户状态、可用积分、库存及每人限额；预检不锁库存、不扣分。\n4. 账户范围（DEMO_IDENTITY）：积分按企业、福利项目、员工分别核算，不可跨企业或跨项目合并、转赠、提现。\n\n【未确认项】本次未查询积分退分明细，因此 AS_A_001 是否已退分、退回积分数量及到账时间均未确认；售后审核结果也尚未确认。如需查看，可进入订单页面查看售后记录。",
+            "reply_type": "ANSWER",
+            "sources": [
+              {
+                "knowledge_id": "DEMO_AFTERSALE",
+                "title": "售后申请、审核和退分",
+                "source": "本项目演示规则（非真实企业制度）",
+                "url": null,
+                "version": "demo-v1",
+                "source_type": "demo_policy",
+                "reference_only": false
+              },
+              {
+                "knowledge_id": "DEMO_A_EXPIRY",
+                "title": "华享年度福利积分有效期",
+                "source": "本项目模拟企业项目规则",
+                "url": null,
+                "version": "demo-v1",
+                "source_type": "demo_policy",
+                "reference_only": false
+              },
+              {
+                "knowledge_id": "DEMO_REDEEM",
+                "title": "积分兑换、价格与预检",
+                "source": "本项目演示规则（非真实企业制度）",
+                "url": null,
+                "version": "demo-v1",
+                "source_type": "demo_policy",
+                "reference_only": false
+              },
+              {
+                "knowledge_id": "DEMO_IDENTITY",
+                "title": "企业、福利项目与账户范围",
+                "source": "本项目演示规则（非真实企业制度）",
+                "url": null,
+                "version": "demo-v1",
+                "source_type": "demo_policy",
+                "reference_only": false
+              }
+            ],
+            "business_facts": [
+              {
+                "tool_call_id": "evidence_33ef5c4431644f128be8f2f0aa12506b",
+                "entity_id": "ORDER_A_004",
+                "field_path": "status",
+                "value": "completed",
+                "unit": "status"
+              },
+              {
+                "tool_call_id": "evidence_33ef5c4431644f128be8f2f0aa12506b",
+                "entity_id": "ORDER_A_004",
+                "field_path": "total_points",
+                "value": "520",
+                "unit": "points"
+              },
+              {
+                "tool_call_id": "evidence_33ef5c4431644f128be8f2f0aa12506b",
+                "entity_id": "ORDER_A_004",
+                "field_path": "total_amount",
+                "value": "0.0",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_33ef5c4431644f128be8f2f0aa12506b",
+                "entity_id": "ORDER_A_004",
+                "field_path": "created_at",
+                "value": "2026-10-31T22:20:38.196884+08:00",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_33ef5c4431644f128be8f2f0aa12506b",
+                "entity_id": "ORDER_A_004",
+                "field_path": "payment_type",
+                "value": "points",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_33ef5c4431644f128be8f2f0aa12506b",
+                "entity_id": "ORDER_A_004",
+                "field_path": "items[0].product_id",
+                "value": "PRODUCT_003",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_33ef5c4431644f128be8f2f0aa12506b",
+                "entity_id": "ORDER_A_004",
+                "field_path": "items[0].quantity",
+                "value": "1",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_c681093325784eb68213203cdf1dec51",
+                "entity_id": "AS_A_001",
+                "field_path": "status",
+                "value": "processing",
+                "unit": "status"
+              },
+              {
+                "tool_call_id": "evidence_c681093325784eb68213203cdf1dec51",
+                "entity_id": "AS_A_001",
+                "field_path": "kind",
+                "value": "return",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_c681093325784eb68213203cdf1dec51",
+                "entity_id": "AS_A_001",
+                "field_path": "order_id",
+                "value": "ORDER_A_004",
+                "unit": "text"
+              },
+              {
+                "tool_call_id": "evidence_c681093325784eb68213203cdf1dec51",
+                "entity_id": "AS_A_001",
+                "field_path": "created_at",
+                "value": "2026-10-31T14:20:38.201629Z",
+                "unit": "text"
+              }
+            ]
+          }
+        }
+      },
+      "execution_trace": {
+        "graph_version": "welfare-multi-v1",
+        "prompt_version": "welfare-multi-v1",
+        "model_stages": [
+          {
+            "stage": "router",
+            "attempt": 1,
+            "success": true,
+            "token_usage": {
+              "input_tokens": 1332,
+              "output_tokens": 163,
+              "total_tokens": 1495,
+              "input_token_details": {
+                "cache_read": 1152
+              },
+              "output_token_details": {}
+            }
+          },
+          {
+            "stage": "planner",
+            "attempt": 1,
+            "success": true,
+            "token_usage": {
+              "input_tokens": 1493,
+              "output_tokens": 256,
+              "total_tokens": 1749,
+              "input_token_details": {
+                "cache_read": 1152
+              },
+              "output_token_details": {}
+            }
+          },
+          {
+            "stage": "supervisor_review",
+            "attempt": 1,
+            "success": true,
+            "token_usage": {
+              "input_tokens": 3181,
+              "output_tokens": 68,
+              "total_tokens": 3249,
+              "input_token_details": {
+                "cache_read": 1024
+              },
+              "output_token_details": {}
+            }
+          },
+          {
+            "stage": "synthesis",
+            "attempt": 1,
+            "success": true,
+            "token_usage": {
+              "input_tokens": 4338,
+              "output_tokens": 1282,
+              "total_tokens": 5620,
+              "input_token_details": {
+                "cache_read": 1408
+              },
+              "output_token_details": {}
+            }
+          }
+        ],
+        "route": {
+          "route_kind": "MULTI",
+          "domains": [
+            "order",
+            "aftersales",
+            "policy"
+          ],
+          "operation_intent": "QUERY",
+          "entity_hints": [
+            {
+              "entity_type": "order",
+              "entity_id": "ORDER_A_004"
+            }
+          ],
+          "clarification": null,
+          "reason": "用户同时询问具体订单的订单状态、实际售后状态，以及该福利项目的退货退款规则，需订单、售后、规则三个领域能力。"
+        },
+        "plans": [
+          {
+            "plan_version": 1,
+            "tasks": [
+              {
+                "task_id": "T1",
+                "domain": "order",
+                "goal": "查询订单 ORDER_A_004 的订单状态与基本信息",
+                "depends_on": [],
+                "entity_bindings": [
+                  {
+                    "entity_type": "order",
+                    "entity_id": "ORDER_A_004"
+                  }
+                ],
+                "expected_outputs": [
+                  "订单状态",
+                  "订单基本信息"
+                ]
+              },
+              {
+                "task_id": "T2",
+                "domain": "aftersales",
+                "goal": "查询订单 ORDER_A_004 的实际售后申请与处理状态（以售后单为准，不把订单 refund 字段当作售后状态）",
+                "depends_on": [],
+                "entity_bindings": [
+                  {
+                    "entity_type": "order",
+                    "entity_id": "ORDER_A_004"
+                  }
+                ],
+                "expected_outputs": [
+                  "是否存在售后单",
+                  "售后处理状态"
+                ]
+              },
+              {
+                "task_id": "T3",
+                "domain": "policy",
+                "goal": "检索该福利项目关于退货退款的适用规则条款",
+                "depends_on": [],
+                "entity_bindings": [],
+                "expected_outputs": [
+                  "退货退款适用规则条款及知识编号"
+                ]
+              }
+            ]
+          }
+        ],
+        "review": {
+          "decision": "FINISH",
+          "additional_tasks": [],
+          "message": "订单状态、售后实际状态、退货退款规则三方面均已成功确认，可汇总回答。"
+        },
+        "budget": {
+          "model_calls": 10,
+          "tool_calls": 3,
+          "task_attempts": 3,
+          "input_tokens": 31445,
+          "output_tokens": 3556,
+          "estimated_tokens": 0,
+          "reserved_tokens": 0,
+          "token_budget": 60000
+        },
+        "model_configuration": {
+          "provider": "openai_compatible",
+          "model": "deepseek-chat",
+          "temperature": 0,
+          "thinking_mode": "disabled",
+          "timeout_seconds": 30.0,
+          "domain_output_limit": 2000,
+          "summary_output_limit": 4000,
+          "provider_retries": 0
+        }
+      },
+      "beijing_expiry_oracle": null
+    }
+  ]
+}

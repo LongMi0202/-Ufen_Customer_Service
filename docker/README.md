@@ -45,6 +45,8 @@ python docker/check-services.py
 
 API 和前端健康检查验证进程可响应；真实模型查询通过 `tests/check_live_chat.py` 单独验证。AI Worker 与实时消息 Worker 必须同时运行，才能完成消息处理与推送。后台已支持本地政策库查阅和人工退分；文档上传索引与在线评测不在第一版范围。完整业务说明、企业账号和回归命令见根目录 README.md。
 
+当前 Compose 默认 `AGENT_MODE=multi`，在根目录 `.env` 改为 `single` 后执行 `docker compose up -d --force-recreate ai-service` 可切换。单／多 Agent 共用现有镜像和业务服务，详见[多Agent实现与运行验收](../docs/多Agent实现与运行验收.md)。
+
 ## 停止和保留数据
 
 ```powershell

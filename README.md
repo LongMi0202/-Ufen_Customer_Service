@@ -4,7 +4,9 @@
 
 ## 架构与边界
 
-保留单 Agent 架构：`用户前端 → 会话 API → Turn/AI Worker → AI Service → Skill/只读工具 → 商城业务 API`。
+支持 `AGENT_MODE=single/multi`，Docker Compose 默认 `multi`。执行链路为 `用户前端 → 会话 API → Turn/AI Worker → AI Service → Skill/只读工具 → 商城业务 API`；多 Agent 模式在 AI Service 内通过前置路由、主控和六个领域 Agent 协作，单 Agent 模式继续保留动态 Skill。
+
+当前实现、配置切换、源码入口与验收说明见 [`docs/多Agent实现与运行验收.md`](docs/多Agent实现与运行验收.md)。
 
 - 六类 Skill：商品、订单、物流、售后、政策、积分。
 - 十四个工具：原九个工具及 `get_points_account`、`list_points_transactions`、`get_expiring_points`、`get_points_refund_status`、`quote_redemption`。
@@ -12,7 +14,7 @@
 - Agent 仅查询和生成页面引导。用户在页面确认积分兑换、取消或售后，工作人员在后台核对后处理退款退货。第一版仅支持单商品纯积分实物兑换、整单退分。
 - 商城业务层使用数据库行锁、事务、积分批次分配和请求参数指纹保证扣分、库存、订单的一致性及幂等。优先消耗最早到期的有效批次；退分保留原期限，过期返回部分记录为失效。
 - 每60秒执行积分到期任务，清理过期剩余批次并写流水；只读账户查询即时排除过期积分，因此不依赖任务恰好执行的时间。
-- Harness 包含上下文裁剪、动态工具范围、结构化输出、实体字段证据、政策引用、页面动作验证、有限纠错及运行审计。每轮 Agent 生成最多16次工具调用，最多两轮生成（含首次），整个生成与纠错过程120秒超时。
+- Harness 包含上下文裁剪、工具范围、结构化输出、实体字段证据、政策引用、页面动作验证、有限纠错及运行审计。单 Agent 每轮生成最多16次工具调用、最多两轮生成；多 Agent 使用根请求共享预算、依赖调度、受控并行、冲突复查与分层任务审计。两种模式默认均为120秒执行时限。
 
 ## 政策资料的独立保存位置
 
@@ -51,6 +53,7 @@ docker compose ps
 ```powershell
 python docker/check-services.py
 python tests/test_welfare_api.py
+python -X utf8 tests/benchmark_agents.py --suite review --modes single multi
 # Docker中运行无模型调用的单元测试（PowerShell）
 $OutputEncoding = [System.Text.UTF8Encoding]::new()
 Get-Content -Raw tests/test_harness.py -Encoding UTF8 | docker compose exec -T ai-service python -
@@ -66,6 +69,8 @@ python -X utf8 tests/check_live_chat.py --scenario birthday
 API集成测试会创建测试订单再取消，恢复对应积分和库存；到期测试事务回滚。单元测试覆盖实体不匹配、单位不匹配、虚假政策引用、未到账却声称退分、跨企业政策过滤及到期任务防重。测试结果不代表线上自动解决率或生产性能指标。
 
 初版代码索引、完整 Skill/工具清单、演示步骤和 2026-11-01 验证记录见 [`docs/初版架构与验收.md`](docs/初版架构与验收.md)。退分详情区分已退总额、退回时可用积分与原批次过期失效积分，当前账户余额独立查询。
+
+多 Agent 初版的本地测试记录和小样本对照见 [`docs/多Agent初版验收记录_2026-11-02.md`](docs/多Agent初版验收记录_2026-11-02.md)。固定历史版本为 `single-agent-v1`，双模式初版为 `multi-agent-v1`，开发分支为 `feature/multi-agent`。
 
 前端在 Docker/Windows 挂载下启用轮询热更新；修改 Python 源码后重启对应服务。新增依赖仍需更新基础镜像，本地 `uv sync` 不会更新容器依赖。
 
