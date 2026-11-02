@@ -1,0 +1,25 @@
+graph TD
+    U["user_002：余额多少？30天临期多少？"] --> C["会话服务 / Turn快照 / AI Worker"]
+    C --> X["创建根Run，准备身份与必要历史"]
+    X --> R["路由识别：SINGLE，points"]
+    R --> RC["程序检查路由结果"]
+    RC --> A["积分Agent：预加载points-service"]
+    A --> T["选择get_points_account，无业务参数"]
+    T --> B["商城账户API：按令牌查当前项目"]
+    B --> E["返回账户事实，保存原始证据"]
+    E --> S["积分Agent：候选回复和事实引用"]
+    S --> V["Harness：账户、字段、数值、单位校验"]
+    V --> F{"Turn输入版本仍有效？"}
+    F -->|"是"| O["保存消息与Outbox，推送到前端"]
+    F -->|"否"| Z["作废旧结果，不发布"]
+    O --> P["展示8000可用积分、1000临期积分"]
+    classDef program fill:#EAF3FF,stroke:#2A62B8,color:#14335F;
+    classDef model fill:#E8F6F0,stroke:#198266,color:#105543;
+    classDef business fill:#FFF3DB,stroke:#B87313,color:#744500;
+    classDef rejected fill:#FCECEC,stroke:#C84848,color:#822F2F;
+    classDef human fill:#F5ECFE,stroke:#8154AD,color:#543273;
+    class C,X,RC,E,V,F,O,P program;
+    class R,A,T,S model;
+    class B business;
+    class Z rejected;
+    class U human;

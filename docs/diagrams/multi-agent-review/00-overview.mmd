@@ -1,0 +1,32 @@
+graph TD
+    U["用户输入 / 当前福利项目"] --> C["会话服务：鉴权、消息保存、Turn快照"]
+    C --> W["AI Worker：租约领取并调用AI服务"]
+    W --> X["根Run：身份上下文、历史裁剪、共享预算"]
+    X --> R["前置路由：规则 / 模型结构化分类"]
+    R --> RC["程序检查路由类别与领域范围"]
+    RC -->|"SINGLE"| D["对应领域Agent：固定Skill、受限工具"]
+    RC -->|"MULTI"| M["主控Agent：生成任务计划"]
+    M --> PC["程序检查计划、对象绑定和依赖"]
+    PC --> G["LangGraph：依赖就绪调度、受控并行"]
+    G --> D
+    D --> T["只读工具：商城API / 政策检索"]
+    T --> E["记录领域结果、状态和原始证据"]
+    E --> K{"执行路径"}
+    K -->|"单领域"| V["Harness：最终事实、引用与页面动作校验"]
+    K -->|"复合问题"| S["主控Agent：核对覆盖范围并汇总"]
+    S --> V
+    RC -->|"CLARIFY / CHAT"| Q["形成澄清问题 / 简单回复"]
+    Q --> V
+    RC -->|"HANDOFF"| H["形成转人工意图与查询摘要"]
+    H --> V
+    V --> F["AI Worker / 会话服务：复核Turn版本"]
+    F --> O["保存消息、必要的人工工单及Outbox"]
+    O --> P["Redis / WebSocket：前端展示"]
+    classDef program fill:#EAF3FF,stroke:#2A62B8,color:#14335F;
+    classDef model fill:#E8F6F0,stroke:#198266,color:#105543;
+    classDef business fill:#FFF3DB,stroke:#B87313,color:#744500;
+    classDef human fill:#F5ECFE,stroke:#8154AD,color:#543273;
+    class C,W,X,RC,PC,G,E,K,V,F,O,P program;
+    class R,D,M,S,Q,H model;
+    class T business;
+    class U human;
