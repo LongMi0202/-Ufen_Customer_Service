@@ -6,6 +6,14 @@ from atguigu.app.repositories.tool import ToolCallRepository
 from atguigu.models.models import AgentToolCall
 
 
+def project_tool_result(tool_name, result):
+    """Keep full audit data; domain/model views of an order exclude refund details."""
+    value = dict(result) if result else None
+    if value and tool_name == "get_order" and isinstance(value.get("data"), dict):
+        value["data"] = {key: item for key, item in value["data"].items() if key != "refund"}
+    return value
+
+
 @dataclass(frozen=True)
 class ToolCallSnapshot:
     """保存一次工具调用用于后续校验的只读快照"""

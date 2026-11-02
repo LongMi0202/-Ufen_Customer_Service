@@ -13,6 +13,7 @@ from atguigu.agent.harness.errors import AgentOutputValidationError
 from atguigu.agent.harness.run.runtime import AgentRuntimeContext
 from atguigu.agent.harness.skills.catalog import SKILL_CATALOG
 from atguigu.agent.harness.tools.catalog import TOOL_CATALOG
+from atguigu.agent.harness.tools.snapshot import project_tool_result
 from atguigu.agent.harness.validator.evidence import entities, validate_evidence
 from atguigu.agent.llm.output import AgentOutput
 from atguigu.agent.multi.budget import BudgetExceeded, RunSuperseded, ValidityUnavailable
@@ -57,7 +58,7 @@ class DomainRunner:
             "upstream": [result.model_dump(mode="json") for result in upstream]}
         upstream_calls = await self.audit.calls(context.run_id, upstream_task_ids)
         # Raw evidence is passed with its original server-generated ID, never renumbered.
-        task_input["upstream_evidence"] = [call.result for call in upstream_calls if call.success]
+        task_input["upstream_evidence"] = [project_tool_result(call.tool_name, call.result) for call in upstream_calls if call.success]
         await self.audit.start(task_id=task_id, run_id=context.run_id, spec=spec, context=task_input, attempt=attempt)
         started = perf_counter()
         state, error, result = "FAILED", None, None

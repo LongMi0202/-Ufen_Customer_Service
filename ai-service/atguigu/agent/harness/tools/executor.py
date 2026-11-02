@@ -12,6 +12,7 @@ from atguigu.agent.harness.tools.output import ToolResult, ToolFailureType, Tool
 from atguigu.app.repositories.tool import ToolCallRepository
 from atguigu.infrastructure.db import session_factory
 from atguigu.models.models import AgentToolCall
+from atguigu.agent.harness.tools.snapshot import project_tool_result
 
 ToolOperation = Callable[[], Awaitable[Any]]
 logger = logging.getLogger(__name__)
@@ -101,9 +102,8 @@ class ToolExecutor:
         )
         # 5. 序列化成模型可以读取的 JSON 文本
         model_result = tool_result.model_dump(mode="json")
-        if runtime_context.domain_name == "order" and tool_name == "get_order" and isinstance(model_result.get("data"), dict):
-            # Keep raw audit evidence; the order agent sees order facts, not another domain's refund details.
-            model_result["data"].pop("refund", None)
+        if runtime_context.domain_name is not None:
+            model_result = project_tool_result(tool_name, model_result)
         return json.dumps(model_result, ensure_ascii=False)
 
     async def _create_tool_call(

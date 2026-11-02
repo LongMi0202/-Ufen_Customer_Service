@@ -10,6 +10,7 @@ from langgraph.graph import END, START, StateGraph
 
 from atguigu.agent.harness.run.context import ContextCompiler
 from atguigu.agent.harness.validator.output import ValidatedAgentOutput
+from atguigu.agent.harness.tools.snapshot import project_tool_result
 from atguigu.agent.llm.output import AgentOutput, HandoffRequest, HandoffReason
 from atguigu.agent.multi.audit import TaskAudit
 from atguigu.agent.multi.budget import BudgetExceeded, EvidenceConflict, RunSuperseded, SharedBudget, ValidityUnavailable
@@ -270,7 +271,7 @@ class MultiAgentExecutor:
         output = await self.caller.call(AgentOutput, SYNTHESIS_PROMPT,
             [*self.messages, HumanMessage(json.dumps({
                 "domain_results": {key: value.model_dump(mode="json") for key, value in state["results"].items()},
-                "evidence": [{"tool_name": call.tool_name, "result": call.result} for call in calls]},
+                "evidence": [{"tool_name": call.tool_name, "result": project_tool_result(call.tool_name, call.result)} for call in calls]},
                 ensure_ascii=False))], "synthesis")
         return {"output": output}
 
@@ -291,7 +292,7 @@ class MultiAgentExecutor:
             # One bounded summary correction; domain queries are not repeated.
             corrected = await self.caller.call(AgentOutput, SYNTHESIS_PROMPT,
                 [*self.messages, HumanMessage(json.dumps({"candidate": output.model_dump(mode="json"),
-                    "validation_error": str(exc)[:600], "evidence": [call.result for call in calls]},
+                    "validation_error": str(exc)[:600], "evidence": [project_tool_result(call.tool_name, call.result) for call in calls]},
                     ensure_ascii=False) + "\n纯政策条件中的状态词请用中文引号逐字引用本次知识原文，不要改写成当前订单的状态。")], "final_correction")
             return self.validator.validate_with_calls(self._constrain_action(corrected), calls)
 

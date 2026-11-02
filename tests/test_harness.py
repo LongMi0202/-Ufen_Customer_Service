@@ -7,6 +7,7 @@ from atguigu.agent.harness.errors import AgentOutputValidationError
 from atguigu.agent.llm.output import AgentOutput, BusinessFactReference
 from atguigu.agent.harness.validator.answer import AnswerValidator
 from atguigu.agent.harness.validator.evidence import read_field
+from atguigu.agent.harness.tools.snapshot import project_tool_result
 
 
 def call(data, name="get_points_account"):
@@ -19,6 +20,13 @@ def output(value="8000",entity="PA_A",field="available_points"):
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_order_projection_preserves_raw_audit_and_refund_tool(self):
+        raw={"data":{"id":"ORDER_A","refund":{"returned_points":0}}}
+        view=project_tool_result("get_order",raw)
+        self.assertNotIn("refund",view["data"])
+        self.assertIn("refund",raw["data"])
+        self.assertEqual(project_tool_result("get_points_refund_status",raw),raw)
+
     def test_valid_account_evidence(self):
         self.assertEqual(validate_evidence(output(),[call({"account_id":"PA_A","available_points":8000})]),[])
 
