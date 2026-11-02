@@ -52,6 +52,7 @@ class EvidenceTests(unittest.TestCase):
 class PolicyTests(unittest.TestCase):
     def test_array_field_paths_are_read_without_executing_expressions(self):
         self.assertEqual(read_field({"items":[{"product_id":"PRODUCT_A"}]}, "items[0].product_id"), "PRODUCT_A")
+        self.assertEqual(read_field({"specs":{"续航":"40小时"}},"specs.续航"),"40小时")
         for path in ("items[-1]", "__import__('os')", "items[0:2]"):
             with self.assertRaises(KeyError):
                 read_field({"items":[]}, path)

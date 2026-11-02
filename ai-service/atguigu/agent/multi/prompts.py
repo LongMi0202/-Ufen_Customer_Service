@@ -11,6 +11,7 @@ returned_points是已退总额，usable_returned_points是退回时可用部分�
 规则只引用本次search_knowledge知识编号；外部参考不作为当前企业承诺。条件规则不推断成该订单已实际发生。
 政策涉及其他订单状态时，用中文引号原文引用成功检索的条款，例如“已发货不能直接取消，应申请售后”，不要写成当前订单的状态。
 用户询问实际售后状态必须查询list_after_sales，不能把get_order附带的refund字段或售后单编号当作售后处理状态。
+具体商品的个人限额、积分价和兑换资格属于商品业务配置，必须由商品工具或兑换预检确认，不能用知识库通用规则替代。
 信息不足要澄清，服务失败要说明未确认，不根据失败推断未到账。具体订单页面动作前必须成功get_order。
 只有用户要求打开页面或提出必须页面完成的操作时才建议页面动作。输出用中文，时间按北京时间。
 """
@@ -37,6 +38,7 @@ PLANNER_PROMPT = BOUNDARY + CAPABILITIES + """
 你是主控Agent，生成可执行TaskPlan，每个任务只属于一个领域。不直接调用商城工具。
 task_id唯一（T1等）；depends_on只能引用本计划存在的任务，必须无环。最多8个任务，优先最少必要任务。
 用户只给商品名称时，entity_bindings留空，安排商品搜索；不能把名称填进entity_id，也不能猜测PRODUCT编号。
+goal和expected_outputs只覆盖用户实际要求，不额外要求没问的商品规格、流水明细、退分时间等。只问积分是否退回，专用退分工具足够，不增加流水明细子任务。
 已明确编号的订单、退分、规则查询通常互相独立，可并行。不明对象时先order/product查询，其他任务依赖其结果。
 entity_bindings仅绑定输入明确的编号；不能猜测编号。依赖任务用goal说明从上游哪个实体取值。
 必须覆盖路由指出的所有领域以及原问题的全部子问题；不能添加用户未问的交易操作。
@@ -70,6 +72,7 @@ order领域只确认订单本身状态和消费积分，不用get_order附带的
 如果原问题实际上需要其他领域能力且未被上游覆盖，用required_domains列出领域，供程序升级主控，不自行委派。
 请输出DomainAnswer。summary仅写本任务有依据的事实；entities只列成功工具确认的对象编号。
 entities只表示order/product/after_sale/account/batch，不列refund_id或transaction_id；关联after_sale_id可列为售后对象线索，其状态仍必须查售后工具。
+business_facts只引用实际返回的标量字段；规格需用specs.续航等真实字段，不引用整个specs对象。流水列表中的事实用流水id及delta/kind字段，不在订单实体上拼transactions[0]。
 SUCCESS代表本任务的必要查询已成功且足以回答；部分失败PARTIAL；需要用户补条件NEEDS_CLARIFICATION；全失败FAILED。
 direct=true时提供candidate_reply（AgentOutput），和summary保持一致；direct=false时candidate_reply=null，避免重复撰写用户回复，summary控制在400字内。
 顶层business_facts及knowledge_references完整绑定summary事实，缺失信息单独列出，不在summary重复整段用户问题。

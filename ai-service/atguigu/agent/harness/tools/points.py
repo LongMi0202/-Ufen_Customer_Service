@@ -42,7 +42,7 @@ async def get_expiring_points(runtime: ToolRuntime[AgentRuntimeContext],
 @tool
 async def get_points_refund_status(order_id: Annotated[str,"已由用户或订单查询工具提供的订单编号"],
         runtime: ToolRuntime[AgentRuntimeContext]) -> str:
-    """查询订单独立退分状态、应退/已退积分、退回时失效及可用部分、到账流水；已退总额不等于当前可用余额，不执行退款。"""
+    """查询订单独立退分状态、应退/已退积分、退回时失效及可用部分、关联流水编号；需要流水明细时另查list_points_transactions。已退总额不等于当前可用余额，不执行退款。"""
     value=order_id.strip().upper().replace("-","_")
     return await query(runtime,"get_points_refund_status",f"/points/refunds/{quote(value,safe='')}",{"order_id":value},PointsRefundData)
 

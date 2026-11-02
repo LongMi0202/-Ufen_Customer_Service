@@ -23,9 +23,9 @@ def scalar_text(value):
 
 def read_field(value, path):
     """Read a dotted field or nonnegative JSON array index; never eval a model expression."""
-    if not re.fullmatch(r"[A-Za-z_]\w*(?:\[\d+\])?(?:\.[A-Za-z_]\w*(?:\[\d+\])?)*", path):
+    if not re.fullmatch(r"[^\W\d]\w*(?:\[\d+\])?(?:\.[^\W\d]\w*(?:\[\d+\])?)*", path):
         raise KeyError(path)
-    for key, index in re.findall(r"([A-Za-z_]\w*)|\[(\d+)\]", path):
+    for key, index in re.findall(r"([^\W\d]\w*)|\[(\d+)\]", path):
         value = value[key] if key else value[int(index)]
     return value
 
@@ -49,7 +49,13 @@ def validate_evidence(output, calls):
             if isinstance(value,(dict,list)) or scalar_text(value)!=fact.value:continue
             matched=True
             break
-        if not matched:fail(f"实体或字段证据不匹配：{fact.entity_id}.{fact.field_path}")
+        if not matched:
+            hint = ""
+            if call.tool_name == "list_points_transactions":
+                hint = "；流水工具返回列表：entity_id使用流水自己的id，field_path直接填delta、kind等标量字段，不是transactions[0].delta"
+            elif fact.field_path == "specs":
+                hint = "；specs是对象，应引用specs.续航等实际标量子字段，不能引用整个对象"
+            fail(f"实体或字段证据不匹配：{fact.entity_id}.{fact.field_path}{hint}")
         if fact.unit=="points":
             if fact.field_path.split(".")[-1] not in allowed_point_fields:fail("积分单位不能引用价格、库存或其他数值字段")
             try:point_values.add(Decimal(fact.value))
