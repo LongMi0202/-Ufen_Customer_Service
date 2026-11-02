@@ -292,7 +292,7 @@ class MultiAgentExecutor:
             corrected = await self.caller.call(AgentOutput, SYNTHESIS_PROMPT,
                 [*self.messages, HumanMessage(json.dumps({"candidate": output.model_dump(mode="json"),
                     "validation_error": str(exc)[:600], "evidence": [call.result for call in calls]},
-                    ensure_ascii=False))], "final_correction")
+                    ensure_ascii=False) + "\n纯政策条件中的状态词请用中文引号逐字引用本次知识原文，不要改写成当前订单的状态。")], "final_correction")
             return self.validator.validate_with_calls(self._constrain_action(corrected), calls)
 
     def _conflicting_tasks(self, calls):
@@ -364,23 +364,35 @@ class MultiAgentExecutor:
         return output
 
     async def _safe_partial(self):
-        if self._conflicting_tasks(await self._eligible_calls()):
+        calls = await self._eligible_calls()
+        if self._conflicting_tasks(calls):
             return ValidatedAgentOutput(**self._handoff("查询证据有冲突，本轮未能完成复查，请人工核对。").model_dump())
+        policies = {item["knowledge_id"]: item for call in calls if call.success and call.tool_name == "search_knowledge"
+                    for item in (call.result.get("data") or [])}
         parts = []
         for result in self.state["results"].values():
             if result.result_status not in {"SUCCESS", "PARTIAL"}:
                 continue
-            candidate = result.candidate_reply or AgentOutput(reply_type="ANSWER", reply_content=result.summary,
-                business_facts=result.business_facts, knowledge_references=result.knowledge_references)
+            if result.domain == "policy":
+                cited = [policies[key] for key in result.knowledge_references if key in policies]
+                if not cited:
+                    continue
+                candidate = AgentOutput(reply_type="ANSWER", reply_content="\n".join(
+                    f"规则依据《{item['title']}》：“{item['content']}”" for item in cited),
+                    knowledge_references=[item["knowledge_id"] for item in cited])
+            else:
+                candidate = result.candidate_reply or AgentOutput(reply_type="ANSWER", reply_content=result.summary,
+                    business_facts=result.business_facts, knowledge_references=result.knowledge_references)
             if candidate.reply_type == "ANSWER":
                 parts.append(candidate)
         if parts:
-            output = AgentOutput(reply_type="ANSWER", reply_content=("\n\n".join(part.reply_content for part in parts))[:3700]
-                + "\n\n其余问题本次未能确认，可补充信息重试或联系人工客服。",
+            suffix = "\n\n其余问题本次未能确认，可补充信息重试或联系人工客服。" if any(
+                result.result_status != "SUCCESS" for result in self.state["results"].values()) else ""
+            output = AgentOutput(reply_type="ANSWER", reply_content=("\n\n".join(part.reply_content for part in parts))[:3700] + suffix,
                 business_facts=[fact for part in parts for fact in part.business_facts],
                 knowledge_references=list(dict.fromkeys(key for part in parts for key in part.knowledge_references)))
             try:
-                return self.validator.validate_with_calls(output, await self._eligible_calls())
+                return self.validator.validate_with_calls(output, calls)
             except ValueError as exc:
                 self.trace["partial_validation_error"] = str(exc)[:600]
         return ValidatedAgentOutput(reply_type="DECLINE", reply_content="本次暂时未能完成可靠的查询，请稍后重试或联系人工客服。")

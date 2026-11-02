@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     multi_max_model_calls: int = Field(default=24, ge=1)
     multi_token_budget: int = Field(default=60000, ge=1000)
     multi_model_output_tokens: int = Field(default=2000, ge=256)
+    multi_summary_output_tokens: int = Field(default=4000, ge=256)
     multi_concurrency: int = Field(default=2, ge=1, le=6)
     multi_process_concurrency: int = Field(default=6, ge=1, le=32)
 

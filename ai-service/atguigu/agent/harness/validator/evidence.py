@@ -26,6 +26,8 @@ def read_field(value, path):
     if not re.fullmatch(r"[^\W\d]\w*(?:\[\d+\])?(?:\.[^\W\d]\w*(?:\[\d+\])?)*", path):
         raise KeyError(path)
     for key, index in re.findall(r"([^\W\d]\w*)|\[(\d+)\]", path):
+        if key and isinstance(value, list) and len(value) == 1:
+            value = value[0]
         value = value[key] if key else value[int(index)]
     return value
 
@@ -43,11 +45,15 @@ def validate_evidence(output, calls):
         for obj in entities(call.result.get("data")):
             if fact.entity_id not in {str(obj[k]) for k in ("id","account_id","order_id","product_id","batch_id") if k in obj}:continue
             value=obj
+            field_path=fact.field_path
+            if field_path.startswith("items.") and "items" not in obj and obj.get("product_id") == fact.entity_id:
+                field_path=field_path.removeprefix("items.")
             try:
-                value=read_field(value,fact.field_path)
+                value=read_field(value,field_path)
             except (KeyError,TypeError,IndexError,ValueError):continue
             if isinstance(value,(dict,list)) or scalar_text(value)!=fact.value:continue
             matched=True
+            fact.field_path=field_path
             break
         if not matched:
             hint = ""

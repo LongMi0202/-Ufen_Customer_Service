@@ -58,7 +58,7 @@ class SharedBudget:
     def remaining_seconds(self):
         return max(0, self.deadline - monotonic())
 
-    async def reserve_model(self, messages, schema=None, task_id=None):
+    async def reserve_model(self, messages, schema=None, task_id=None, max_output_tokens=None):
         self.check()
         # Provider-neutral estimate, with headroom. This is not an exact tokenizer or billing cap.
         # Reserve output too; settle actual provider usage or retain the estimate if absent.
@@ -67,7 +67,7 @@ class SharedBudget:
             content += json.dumps(schema, default=str, ensure_ascii=False)
         non_ascii = sum(ord(char) > 127 for char in content)
         estimated_input = int(((len(content) - non_ascii) / 3 + non_ascii * 1.5) * 1.15) + 256
-        reservation = estimated_input + self.settings.multi_model_output_tokens
+        reservation = estimated_input + (max_output_tokens or self.settings.multi_model_output_tokens)
         async with self.lock:
             self.check()
             if self.model_calls >= self.settings.multi_max_model_calls:

@@ -56,15 +56,18 @@ class StructuredCaller:
         last_error = None
         for attempt in range(2):
             await self.budget.checkpoint()
-            reservation = await self.budget.reserve_model(current, schema.model_json_schema())
+            output_limit = self.budget.settings.multi_summary_output_tokens if schema.__name__ == "AgentOutput" else self.budget.settings.multi_model_output_tokens
+            reservation = await self.budget.reserve_model(current, schema.model_json_schema(), max_output_tokens=output_limit)
             usage = None
             try:
-                raw = await self.model.with_structured_output(schema, method="function_calling",
+                model = self.model.model_copy(update={"max_tokens": output_limit})
+                raw = await model.with_structured_output(schema, method="function_calling",
                     include_raw=True).ainvoke(current)
                 usage = getattr(raw.get("raw"), "usage_metadata", None)
                 parsed = raw.get("parsed")
                 if raw.get("parsing_error") or parsed is None:
-                    raise ValueError("结构化结果不符合协议")
+                    reason = str(raw.get("parsing_error") or "missing parsed result")[:450]
+                    raise ValueError("结构化结果不符合协议：" + reason)
                 result = schema.model_validate(parsed)
                 self.trace.setdefault("model_stages", []).append({"stage": stage, "attempt": attempt + 1,
                     "success": True, "token_usage": usage})
