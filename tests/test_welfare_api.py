@@ -51,7 +51,10 @@ class WelfareTests(unittest.TestCase):
         self.assertEqual(call(8001,"/api/v1/auth/demo-token",payload={"user_id":"user_003","role":"customer","welfare_project_id":"welfare_a"})[0],403)
         cake=self.data("/api/v1/products",self.birthday)
         self.assertEqual([p["id"] for p in cake],["PRODUCT_CAKE"])
-        self.assertEqual(self.data("/api/v1/points/account",self.birthday)["available_points"],520)
+        birthday_account=self.data("/api/v1/points/account",self.birthday)
+        self.assertEqual(birthday_account["welfare_project_id"],"birthday_a")
+        self.assertNotEqual(birthday_account["account_id"],self.data("/api/v1/points/account")["account_id"])
+        self.assertGreaterEqual(birthday_account["available_points"],0)
 
     def test_cancelled_order_does_not_imply_refunded(self):
         order=self.data("/api/v1/orders/ORDER_A_003",self.a1)

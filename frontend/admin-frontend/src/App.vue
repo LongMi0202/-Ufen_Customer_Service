@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import OperationsPanel from './OperationsPanel.vue'
+import RunInspection from './RunInspection.vue'
 import { adminApi, createRealtimeConnection, login } from './api'
 
 const section = ref('handoffs')
@@ -17,6 +18,7 @@ const reply = ref('')
 const documents = ref([])
 const runs = ref([])
 const selectedRun = ref(null)
+const runMode = ref('')
 const metrics = reactive({ service: {}, commerce: {}, ai: {} })
 let realtime
 let authRevision = 0
@@ -166,7 +168,7 @@ async function resolveHandoff() {
 
 async function loadObservability() {
   const requests = [
-    adminApi.runs(session.token)
+    adminApi.runs(session.token, runMode.value)
       .then((value) => { runs.value = value })
       .catch(() => { runs.value = [] }),
   ]
@@ -265,8 +267,8 @@ onBeforeUnmount(() => {
       <section v-else class="observability-layout">
         <div v-if="isAdmin" class="metrics"><article><span>AI Runs</span><strong>{{ metrics.ai.agent_runs || 0 }}</strong><small>平均 {{ Math.round(metrics.ai.average_latency_ms || 0) }} ms</small></article><article><span>Token 用量</span><strong>{{ (metrics.ai.input_tokens || 0) + (metrics.ai.output_tokens || 0) }}</strong><small>输入 {{ metrics.ai.input_tokens || 0 }} · 输出 {{ metrics.ai.output_tokens || 0 }}</small></article><article><span>会话</span><strong>{{ metrics.service.conversations || 0 }}</strong><small>{{ metrics.service.queued || 0 }} 个排队</small></article><article><span>人工介入</span><strong>{{ metrics.service.handoffs || 0 }}</strong><small>{{ metrics.service.human || 0 }} 个进行中</small></article><article><span>售后单</span><strong>{{ metrics.commerce.after_sales || 0 }}</strong><small>{{ metrics.commerce.orders || 0 }} 笔订单</small></article></div>
         <div class="audit-grid">
-          <div class="panel runs"><div class="panel-title"><h2>最近运行</h2><button class="ghost" @click="loadObservability">刷新</button></div><button v-for="run in runs" :key="run.id" class="run-row" @click="inspectRun(run)"><span><strong>{{ run.id }}</strong><small>{{ run.conversation_id }} · {{ run.model_name }}</small></span><span :class="['state', run.state.toLowerCase()]">{{ run.state }}</span><b>{{ run.latency_ms || 0 }} ms</b></button></div>
-          <div class="panel inspection"><template v-if="selectedRun"><div class="panel-title"><h2>Run 详情</h2><span>{{ selectedRun.run.state }}</span></div><dl><dt>Prompt</dt><dd>{{ selectedRun.run.prompt_version }}</dd><dt>Tokens</dt><dd>输入 {{ selectedRun.run.input_tokens || 0 }} · 输出 {{ selectedRun.run.output_tokens || 0 }}</dd><dt>Outcome</dt><dd><pre>{{ JSON.stringify(selectedRun.run.outcome, null, 2) }}</pre></dd></dl><h3>工具调用</h3><article v-for="call in selectedRun.tool_calls" :key="call.tool_call_id" class="tool-call"><strong>{{ call.tool_name }}</strong><small>{{ call.latency_ms }} ms</small><pre>{{ JSON.stringify(call.arguments, null, 2) }}</pre><small>{{ call.success ? '调用成功' : '调用失败' }}</small><details><summary>工具结果与证据</summary><pre>{{ JSON.stringify(call.result, null, 2) }}</pre></details></article></template><div v-else class="empty large"><strong>选择一次 Run</strong><span>查看最终结果与只读工具调用审计</span></div></div>
+          <div class="panel runs"><div class="panel-title"><h2>最近运行</h2><select v-model="runMode" aria-label="执行模式筛选" @change="loadObservability"><option value="">全部模式</option><option value="single">单智能体</option><option value="multi">多智能体</option></select><button class="ghost" @click="loadObservability">刷新</button></div><button v-for="run in runs" :key="run.id" class="run-row" @click="inspectRun(run)"><span><strong>{{ run.id }}</strong><small>{{ run.execution_mode === 'multi' ? '多智能体' : '单智能体' }} · {{ run.route?.route_kind || '—' }} · {{ run.model_name }}</small></span><span :class="['state', run.state.toLowerCase()]">{{ run.state }}</span><b>{{ run.latency_ms || 0 }} ms</b></button></div>
+          <RunInspection :detail="selectedRun" />
         </div>
       </section>
     </main>

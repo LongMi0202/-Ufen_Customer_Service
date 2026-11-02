@@ -15,6 +15,7 @@ class ToolCallSnapshot:
     result: dict[str, Any] | None
     success: bool | None
     failure_type: ToolFailureType | None = None
+    task_id: str | None = None
 
     @classmethod
     def from_tool_call(cls, tool_call: AgentToolCall) -> "ToolCallSnapshot":
@@ -26,6 +27,7 @@ class ToolCallSnapshot:
             arguments=dict(tool_call.arguments),
             result=dict(tool_call.result) if tool_call.result is not None else None,
             success=tool_call.success,
+            task_id=tool_call.task_id,
             #  2. 将持久化的失败分类恢复成枚举值
             failure_type=(
                 ToolFailureType(tool_call.result["failure_type"])
@@ -47,7 +49,8 @@ class ToolCallReader:
 
     async def read_by_run_id(
             self,
-            run_id: str
+            run_id: str,
+            task_ids: set[str] | None = None
     ) -> tuple[ToolCallSnapshot, ...]:
         """返回一次 Agent Run 的全部工具调用快照。"""
 
@@ -55,4 +58,5 @@ class ToolCallReader:
         tool_calls = await self.repository.list_by_run_id(run_id)
 
         # 2. 将 ORM 记录转换成校验器使用的只读快照
-        return tuple(ToolCallSnapshot.from_tool_call(tool_call) for tool_call in tool_calls)
+        return tuple(ToolCallSnapshot.from_tool_call(tool_call) for tool_call in tool_calls
+                     if task_ids is None or tool_call.task_id in task_ids)

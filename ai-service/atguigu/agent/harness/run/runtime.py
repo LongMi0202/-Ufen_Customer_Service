@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 from typing_extensions import NotRequired
 
 from langchain.agents import AgentState
@@ -17,6 +18,10 @@ class AgentRuntimeContext:
     access_token: str
     tenant_id: str
     welfare_project_id: str
+    task_id: str | None = None
+    allowed_tool_names: frozenset[str] | None = None
+    bound_entities: tuple[tuple[str, str], ...] = ()
+    budget: Any = None  # Request-local shared budget; never serialized into graph state.
 
 
 class AgentExecutionState(AgentState[AgentOutput]):  # type:ignore

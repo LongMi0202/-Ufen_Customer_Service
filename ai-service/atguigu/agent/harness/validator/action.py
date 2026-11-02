@@ -1,6 +1,6 @@
 from atguigu.agent.harness.errors import AgentOutputValidationError, CorrectableErrorCode
 
-from atguigu.agent.harness.rules.action import ACTION_CATALOG, PageAction
+from atguigu.agent.harness.rules.action import ACTION_CATALOG, PageAction, ActionCode
 
 from atguigu.agent.harness.tools.snapshot import ToolCallSnapshot
 from atguigu.agent.llm.output import PageActionRequest
@@ -42,6 +42,13 @@ class PageActionValidator:
 
         # 5. 校验页面动作引用的订单已经被工具确认
         self._require_verified_order(resource_id, tool_calls)
+        if action_code in {ActionCode.EDIT_ADDRESS, ActionCode.CANCEL_ORDER}:
+            matching = [call for call in tool_calls if call.tool_name == "get_order" and call.success is True
+                        and self._normalize_resource_id(call.arguments["order_id"]) == resource_id]
+            status = matching[-1].result["data"].get("status")
+            if status not in {"paid", "pending_shipment"}:
+                raise PageActionValidationError(CorrectableErrorCode.UNVERIFIED_ACTION_RESOURCE,
+                    "订单当前状态不支持此操作，请解释状态并提供合理的查询或人工协助")
 
         # 6. 使用服务端固定定义生成可信页面动作
         return definition.build(resource_id)

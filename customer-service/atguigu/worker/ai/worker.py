@@ -56,7 +56,8 @@ class TurnProcessor:
 
         # 3. 修改Turn状态、结果的保存
         # self.finalize_result(run_id, run_result,error,request_message_id)
-        await self._finalize_turn(request_data["turn_id"], run_id, run_result, error)
+        await self._finalize_turn(request_data["turn_id"], run_id, run_result, error,
+                                  expected_attempt=request_data.get("turn_attempt"))
 
     async def run_ai_pipeline(self,
                               token: str,
@@ -77,6 +78,8 @@ class TurnProcessor:
 
         # 2. 找到run_id
         run_id = self.event_parser.find_run_id(event)
+        if event.get("event_type") == "run_superseded":
+            return run_id, None
 
         # 3. 根据事件查询事件类型是否是run_decision_prepared
         prepared = self.event_parser.has_prepared_decision(event)
@@ -131,7 +134,8 @@ class TurnProcessor:
             turn_id: str,
             run_id: str | None,
             run_result: dict[str, Any] | None,
-            error: Exception | None
+            error: Exception | None,
+            expected_attempt: int | None = None
     ):
         """结算 Turn 状态并保存 AI 响应及 Outbox 事件。"""
         async with session_factory() as session:
@@ -144,12 +148,21 @@ class TurnProcessor:
                 )
             )
 
+            # A late response from a lost lease cannot finalize the replacement attempt.
+            if turn.status != "RUNNING" or (expected_attempt is not None and turn.attempts != expected_attempt):
+                return
+
             # 2. 记录 AI Service 返回的 Run ID
             if run_id is not None:
                 turn.run_id = run_id
 
             # 3. 输入快照过期时标记 Turn 失效并结束结算
             if conversation.input_revision != turn.snapshot_revision:
+                turn_service.mark_superseded(turn)
+                await session.commit()
+                return
+
+            if conversation.mode != "AI" or (run_result is None and error is None):
                 turn_service.mark_superseded(turn)
                 await session.commit()
                 return

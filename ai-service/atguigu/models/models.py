@@ -43,6 +43,8 @@ class AgentRun(Base):
     )
     model_name: Mapped[str] = mapped_column(String(120))
     prompt_version: Mapped[str] = mapped_column(String(80))
+    execution_mode: Mapped[str] = mapped_column(String(10), default="single", server_default="single", index=True)
+    execution_trace: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     input_context: Mapped[dict[str, Any]] = mapped_column(JSON)
     result: Mapped[dict[str, Any] | None] = mapped_column(
         JSON,
@@ -90,6 +92,8 @@ class AgentToolCall(Base):
         index=True
     )
     tool_call_id: Mapped[str] = mapped_column(String(120))
+    task_id: Mapped[str | None] = mapped_column(ForeignKey("agent_tasks.id"), nullable=True, index=True)
+    model_tool_call_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
     tool_name: Mapped[str] = mapped_column(String(80), index=True)
     arguments: Mapped[dict[str, Any]] = mapped_column(JSON)
     result: Mapped[dict[str, Any] | None] = mapped_column(
@@ -108,3 +112,27 @@ class AgentToolCall(Base):
         DateTime(timezone=True),
         default=get_utcnow
     )
+
+
+class AgentTask(Base):
+    """One domain task attempt; old single-agent calls keep a null task_id."""
+    __tablename__ = "agent_tasks"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    run_id: Mapped[str] = mapped_column(ForeignKey("agent_runs.id"), index=True)
+    logical_task_id: Mapped[str] = mapped_column(String(40))
+    domain: Mapped[str] = mapped_column(String(30))
+    skill_code: Mapped[str] = mapped_column(String(40))
+    prompt_version: Mapped[str] = mapped_column(String(80))
+    attempt: Mapped[int] = mapped_column(Integer, default=1)
+    state: Mapped[str] = mapped_column(String(30), index=True)
+    depends_on: Mapped[list] = mapped_column(JSON)
+    input_context: Mapped[dict] = mapped_column(JSON)
+    result: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    model_calls: Mapped[int] = mapped_column(Integer, default=0)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=get_utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -18,3 +18,6 @@ class AgentRunRequest(BaseModel):
     turn_id: str
     messages: list[CurrentMessage] = Field(min_length=1)
     history: list[HistoryMessage] = Field(default_factory=list)
+    snapshot_revision: int | None = Field(default=None, ge=1)
+    turn_attempt: int | None = Field(default=None, ge=1)
+    execution_mode: Literal["single", "multi"] | None = None

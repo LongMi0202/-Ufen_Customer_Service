@@ -16,6 +16,7 @@ from atguigu.agent.harness.run.executor import AgentExecutor
 from atguigu.agent.harness.run.output import AgentRunOutPutMapper
 from atguigu.models.models import AgentRun, AgentRunState
 from atguigu.app.schemas.auth import CurrentUser
+from atguigu.agent.multi.budget import RunSuperseded
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,8 @@ class AgentRunCoordinator:
             turn_id=request.turn_id,
             state=AgentRunState.RUNNING,
             model_name=self.setting.llm_model,
-            prompt_version=self.setting.prompt_version,
+            prompt_version="welfare-multi-v1" if (request.execution_mode or self.setting.agent_mode) == "multi" else self.setting.prompt_version,
+            execution_mode=request.execution_mode or self.setting.agent_mode,
             input_context=request.model_dump(mode="json"),
 
         )
@@ -82,6 +84,10 @@ class AgentRunCoordinator:
             ]
             # b) 将可信的结果映射到不同AgentRunState中
             agent_run.state, agent_run.result = AgentRunOutPutMapper.map(validated_result)
+        except RunSuperseded as exc:
+            agent_run.state = AgentRunState.SUPERSEDED
+            agent_run.error = str(exc)
+            agent_run.result = {"code": "RUN_SUPERSEDED", "message": "本轮已失效，不发布结果"}
         except Exception as exc:
             # c. 区分具有稳定错误码的执行失败和边界之外的未知失败
             if isinstance(exc, AgentExecutionError):
@@ -107,6 +113,11 @@ class AgentRunCoordinator:
             }
 
             # 5. 调用响应事件构建器构建返回给customer-service的数据
+        agent_run.execution_trace = getattr(self.executor, "trace", None)
+        usage = getattr(self.executor, "token_usage", None)
+        if usage:
+            agent_run.input_tokens = usage.get("input_tokens", 0)
+            agent_run.output_tokens = usage.get("output_tokens", 0)
         agent_run.latency_ms = int((perf_counter() - start_time) * 1000)
         if agent_run.state != AgentRunState.DECISION_PREPARED:
             agent_run.finished_at = get_utcnow()

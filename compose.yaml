@@ -100,6 +100,8 @@ services:
       PYTHONDONTWRITEBYTECODE: "1"
       AI_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-customer_service}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env}@postgres:5432/ai_customer_service
       ECOMMERCE_BASE_URL: http://ecommerce:8001/api/v1
+      CUSTOMER_SERVICE_BASE_URL: http://customer-service:8000
+      AGENT_MODE: ${AGENT_MODE:-multi}
       API_HOST: 0.0.0.0
       API_PORT: "8002"
     volumes:

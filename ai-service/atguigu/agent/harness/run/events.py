@@ -57,4 +57,7 @@ def build_response_event(run: AgentRun) -> dict[str, Any]:
             run.result
         )
 
+    if run.state == AgentRunState.SUPERSEDED:
+        return _build_event(run.id, "run_superseded", run.result or {})
+
     raise RuntimeError("当前 AgentRun 状态无法构建响应事件")

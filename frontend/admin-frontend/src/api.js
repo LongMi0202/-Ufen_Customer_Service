@@ -47,7 +47,7 @@ export const adminApi = {
   serviceMetrics: (token) => apiFetch(CUSTOMER_SERVICE_URL, '/api/v1/admin/metrics', token),
   commerceSummary: (token) => apiFetch(ECOMMERCE_SERVICE_URL, '/api/v1/admin/summary', token),
   aiMetrics: (token) => apiFetch(AI_SERVICE_URL, '/api/v1/admin/metrics', token),
-  runs: (token) => apiFetch(AI_SERVICE_URL, '/api/v1/runs', token),
+  runs: (token, mode = '') => apiFetch(AI_SERVICE_URL, `/api/v1/runs${mode ? `?mode=${encodeURIComponent(mode)}` : ''}`, token),
   run: (token, id) => apiFetch(AI_SERVICE_URL, `/api/v1/runs/${id}`, token),
   documents: (token) => apiFetch(AI_SERVICE_URL, '/api/v1/knowledge/documents', token),
 }

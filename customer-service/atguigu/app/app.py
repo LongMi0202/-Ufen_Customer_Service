@@ -3,6 +3,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from atguigu.app.routers.admin import handoff,admin
 from atguigu.app.routers import  realtime
+from atguigu.app.routers import internal
 from atguigu.app.routers.chat import conversation, message
 from atguigu.common.config import get_settings
 
@@ -20,6 +21,7 @@ app.include_router(message.router)
 app.include_router(handoff.router)
 app.include_router(realtime.router)
 app.include_router(admin.router)
+app.include_router(internal.router)
 
 app.add_middleware(
     CORSMiddleware,

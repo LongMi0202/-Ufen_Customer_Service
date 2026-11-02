@@ -10,6 +10,7 @@ from atguigu.app.services.auth import AuthService
 from atguigu.common.config import get_settings
 from atguigu.agent.harness.run.coordinator import AgentRunCoordinator
 from atguigu.agent.harness.run.executor import AgentExecutor
+from atguigu.agent.execution import ModeExecutor
 from atguigu.infrastructure.db import get_session
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -33,7 +34,7 @@ AgentOutputValidatorDep = Annotated[AgentOutputValidator,Depends(get_agent_outpu
 
 
 def get_agent_executor(request: Request,output_validator: AgentOutputValidatorDep) -> AgentExecutor:
-    return AgentExecutor(agent=request.app.state.agent, output_validator=output_validator)
+    return ModeExecutor(request.app.state, output_validator)
 
 
 AgentExecutorDep = Annotated[AgentExecutor, Depends(get_agent_executor)]

@@ -32,6 +32,17 @@ class Settings(BaseSettings):
     history_character_budget: int = Field(default=12000, ge=1)
     prompt_version: str = "welfare-support-v1"
     agent_run_timeout_seconds: float = Field(default=120, gt=0)
+    agent_mode: Literal["single", "multi"] = "single"
+    customer_service_base_url: str = "http://127.0.0.1:8000"
+    multi_task_timeout_seconds: float = Field(default=45, gt=0)
+    multi_max_tasks: int = Field(default=8, ge=1, le=20)
+    multi_max_tools: int = Field(default=24, ge=1)
+    multi_task_max_tools: int = Field(default=6, ge=1)
+    multi_max_model_calls: int = Field(default=24, ge=1)
+    multi_token_budget: int = Field(default=60000, ge=1000)
+    multi_model_output_tokens: int = Field(default=2000, ge=256)
+    multi_concurrency: int = Field(default=2, ge=1, le=6)
+    multi_process_concurrency: int = Field(default=6, ge=1, le=32)
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,

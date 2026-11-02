@@ -1,4 +1,5 @@
 from typing import Annotated
+from typing import Literal
 
 from fastapi import APIRouter, Header
 
@@ -25,6 +26,7 @@ async def get_admin_metrics(
 async def list_runs(
         session: SessionDep,
         limit: int = 50,
+        mode: Literal["single", "multi"] | None = None,
         authorization: Annotated[str | None, Header()] = None
 ) -> list[dict]:
     """返回最近的 AI Run。"""
@@ -32,7 +34,7 @@ async def list_runs(
         authorization,
         "admin"
     )
-    return await AdminService(session).list_runs(user, limit)
+    return await AdminService(session).list_runs(user, limit, mode)
 
 
 @router.get("/runs/{run_id}")

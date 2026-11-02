@@ -29,11 +29,16 @@ class AgentOutputValidator:
         self.answer_validator = AnswerValidator()
         self.page_action_validator = PageActionValidator()
 
-    async def validate(self, agent_output: AgentOutput, run_id: str) -> ValidatedAgentOutput:
+    async def validate(self, agent_output: AgentOutput, run_id: str,
+                       task_ids: set[str] | None = None) -> ValidatedAgentOutput:
         """校验回答和页面动作并返回可信输出"""
 
         # 1. 读取当前 Run 已持久化的全部工具调用快照
-        tool_calls = await self.tool_call_reader.read_by_run_id(run_id)
+        tool_calls = await self.tool_call_reader.read_by_run_id(run_id, task_ids)
+        return self.validate_with_calls(agent_output, tool_calls)
+
+    def validate_with_calls(self, agent_output: AgentOutput, tool_calls) -> ValidatedAgentOutput:
+        """Same rules for domain-local evidence and the final authorized evidence union."""
         sources = validate_evidence(agent_output, tool_calls)
 
         # 2. 校验回答中的失败降级规则和业务事实

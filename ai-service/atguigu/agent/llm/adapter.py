@@ -15,7 +15,7 @@ from atguigu.common.config import get_settings
 class ModelAdapter:
 
     @classmethod
-    def create_model(cls):
+    def create_model(cls, **overrides):
 
         """
         职责：创建deepseek和qw大语言模型实例
@@ -32,6 +32,7 @@ class ModelAdapter:
             "timeout": settings.llm_timeout_seconds
         }
 
+        model_kwargs.update(overrides)
         # 2. 兼容不同的模型提供商的思考模型(关闭思考模式)
         if settings.llm_provider == "deepseek":
             return ChatDeepSeek(

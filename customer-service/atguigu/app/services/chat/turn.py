@@ -123,6 +123,8 @@ class TurnService:
             "tenant_id": conversation.tenant_id,
             "welfare_project_id": conversation.welfare_project_id,
             "turn_id": claimed_turn.id,
+            "snapshot_revision": claimed_turn.snapshot_revision,
+            "turn_attempt": claimed_turn.attempts,
             "messages": [
                 {
                     "message_id": message.message_id,

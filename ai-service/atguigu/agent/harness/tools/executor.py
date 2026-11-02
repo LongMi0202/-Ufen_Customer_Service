@@ -1,5 +1,6 @@
 import json
 import logging
+from uuid import uuid4
 from collections.abc import Awaitable, Callable
 from time import perf_counter
 from typing import Any
@@ -33,19 +34,47 @@ class ToolExecutor:
     ) -> str:
         """执行一次业务工具调用并返回 Agent 可读取的 JSON"""
 
+        # Enforce at execution, even if a model fabricates a hidden tool invocation.
+        if runtime_context.allowed_tool_names is not None and tool_name not in runtime_context.allowed_tool_names:
+            raise PermissionError("领域Agent无权调用该工具")
+        for entity_type, parameter in (("order", "order_id"), ("product", "product_id")):
+            bound = {value.upper().replace("-", "_") for kind, value in runtime_context.bound_entities if kind == entity_type}
+            if bound and arguments.get(parameter) is not None:
+                actual = str(arguments[parameter]).strip().upper().replace("-", "_")
+                if actual not in bound:
+                    raise PermissionError("工具对象与任务绑定对象不一致")
+        if runtime_context.budget is not None:
+            from atguigu.agent.multi.budget import tool_attempt_reserved
+            await runtime_context.budget.checkpoint()
+            if tool_attempt_reserved.get() != (runtime_context.run_id, runtime_context.task_id, tool_call_id):
+                await runtime_context.budget.reserve_tool(runtime_context.task_id)
+        model_tool_call_id = tool_call_id
+        if runtime_context.task_id is not None:
+            tool_call_id = f"evidence_{uuid4().hex}"
+
         # 1. 保存工具名称和调用参数
         await self._create_tool_call(
             runtime_context,
             tool_call_id,
             tool_name,
-            arguments
+            arguments,
+            model_tool_call_id
         )
 
         # 2. 执行业务请求并统计调用耗时
         started_at = perf_counter()
         try:
             response_data = await operation()
-        except Exception:
+        except BaseException as exc:
+            import asyncio
+            if isinstance(exc, asyncio.CancelledError):
+                await self._save_tool_result(runtime_context.run_id, tool_call_id,
+                    ToolResult[Any](success=False, code="CANCELLED", message="查询已取消", evidence_id=tool_call_id,
+                                    failure_type=ToolFailureType.SERVICE_CALL),
+                    int((perf_counter() - started_at) * 1000))
+                raise
+            if not isinstance(exc, Exception):
+                raise
             # 3. 将调用异常转换成安全的失败结果
             logger.exception("业务工具调用失败 [%s]", tool_name)
             tool_result = ToolResult[Any](
@@ -81,7 +110,8 @@ class ToolExecutor:
             runtime_context: AgentRuntimeContext,
             tool_call_id: str,
             tool_name: str,
-            arguments: dict[str, Any]
+            arguments: dict[str, Any],
+            model_tool_call_id: str | None = None
     ) -> None:
         """在执行请求前保存工具名称和调用参数"""
         async with self.session_factory() as session:
@@ -92,6 +122,8 @@ class ToolExecutor:
                 AgentToolCall(
                     run_id=runtime_context.run_id,
                     tool_call_id=tool_call_id,
+                    task_id=runtime_context.task_id,
+                    model_tool_call_id=model_tool_call_id,
                     tool_name=tool_name,
                     arguments=arguments
                 )

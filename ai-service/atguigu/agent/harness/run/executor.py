@@ -17,6 +17,15 @@ from atguigu.agent.harness.run.context import ContextCompiler
 from atguigu.agent.harness.validator.output import AgentOutputValidator, ValidatedAgentOutput
 
 
+class RunUsageCallback(UsageMetadataCallbackHandler):
+    def __init__(self):
+        super().__init__()
+        self.model_calls = 0
+
+    def on_chat_model_start(self, serialized, messages, **kwargs):
+        self.model_calls += 1
+
+
 class AgentExecutor:
     """Agent 执行器：负责上下文编译、模型调用、输出校验及自我纠错重试。"""
 
@@ -27,6 +36,8 @@ class AgentExecutor:
         self.agent = agent
         self.context_compiler = ContextCompiler()
         self.output_validator = output_validator
+        self.trace = {"graph_version": "welfare-single-v1"}
+        self.token_usage = {"input_tokens": 0, "output_tokens": 0}
 
     async def execute(self,
                       request: AgentRunRequest,
@@ -39,20 +50,22 @@ class AgentExecutor:
         """
         # 1. 编译上下文并创建本次 Run 共用的 Token 统计器
         messages = self.context_compiler.compile_messages(request)
-        usage_callback = UsageMetadataCallbackHandler()
+        usage_callback = RunUsageCallback()
 
         # 2. 执行带有明确次数上限的 Agent 生成和纠错
-        async with asyncio.timeout(get_settings().agent_run_timeout_seconds):
-            validated_output = await self._execute_with_correction(
-                messages, runtime_context, usage_callback
-            )
+        try:
+            async with asyncio.timeout(get_settings().agent_run_timeout_seconds):
+                validated_output = await self._execute_with_correction(
+                    messages, runtime_context, usage_callback
+                )
+        finally:
+            self.token_usage = self._summarize_token_usage(usage_callback)
+            self.trace["budget"] = {**self.token_usage, "model_calls": usage_callback.model_calls}
 
         # 3. 将全部模型调用和纠错消耗合并到可信输出
         return validated_output.model_copy(
             update={
-                "token_usage": self._summarize_token_usage(
-                    usage_callback
-                )
+                "token_usage": self.token_usage
             }
         )
 
