@@ -42,6 +42,18 @@ def internal_token():
     raise RuntimeError("Set INTERNAL_SERVICE_TOKEN or create the root .env")
 
 
+def wait_until_healthy():
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline:
+        try:
+            if all(api(port, "/health").get("status") == "ok" for port in (8000, 8001, 8002)):
+                return
+        except Exception:
+            pass
+        time.sleep(.25)
+    raise RuntimeError("Services are not healthy; start Docker Compose before the benchmark")
+
+
 def login(user, role, project):
     return api(8001, "/api/v1/auth/demo-token", payload={
         "user_id": user, "role": role, "welfare_project_id": project})["access_token"]
@@ -144,6 +156,7 @@ def main():
     if not cases or args.repeat < 1:
         parser.error("No selected cases or invalid repeat count")
     secret = internal_token()
+    wait_until_healthy()
     report = {"dataset_version": dataset["version"], "dataset_digest": digest(dataset), "source": git_metadata(), "rows": [],
               "scope": "AI execution only; no Turn queue/realtime latency; semantic grading pending"}
     args.output.parent.mkdir(parents=True, exist_ok=True)
