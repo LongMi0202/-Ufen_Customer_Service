@@ -2,15 +2,15 @@
 
 ## 当前安排
 
-本项目使用一个 Git 仓库管理源码。本次先固化当前单 Agent 版本，不实施多 Agent 业务代码改造。
+本项目使用一个 Git 仓库管理源码。已固化单 Agent 版本，并在 `feature/multi-agent` 实现单／多 Agent 可切换运行，具体见[多Agent实现与运行验收.md](多Agent实现与运行验收.md)。
 
 远程仓库：[Gitee / ufen_customer_service](https://gitee.com/shaolongmi/ufen_-customer_-service)。
 
 - `main`：可验证的项目代码；后续合并多 Agent 后，同时保留两种执行模式。
 - `single-agent-v1`：当前单 Agent 初版的固定标签，包含源码、工具、知识库、测试及架构文档。
-- `feature/multi-agent`：后续多 Agent 开发分支，保留单 Agent 的可运行入口。
+- `feature/multi-agent`：多 Agent 开发与验收分支，保留单 Agent 的可运行入口。
 
-拟议的 `single/`、`multi/` 目录和 `AGENT_MODE=single/multi` 目前尚未实现，须在多 Agent 改造中逐步加入。Git 标签已经固定的历史代码与之后持续改进的单 Agent 实现分别保留。
+已加入 `agent/single/`、`agent/multi/` 与 `AGENT_MODE=single/multi`。Docker Compose 默认 `multi`，根目录 `.env` 可切换；历史单 Agent 工厂和公共 Harness 继续保留。Git 标签固定历史代码，功能分支中两种架构可持续改进。
 
 ## Gitee 仓库准备
 

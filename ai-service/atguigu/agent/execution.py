@@ -1,5 +1,5 @@
 """Select architecture inside the same commit and service, retaining the public contract."""
-from atguigu.agent.harness.run.executor import AgentExecutor
+from atguigu.agent.single.executor import SingleAgentExecutor
 from atguigu.agent.multi.executor import MultiAgentExecutor
 from atguigu.common.config import get_settings
 
@@ -13,7 +13,7 @@ class ModeExecutor:
     async def execute(self, request, context):
         mode = request.execution_mode or get_settings().agent_mode
         if mode == "single":
-            executor = AgentExecutor(self.app_state.agent, self.output_validator)
+            executor = SingleAgentExecutor(self.app_state.agent, self.output_validator)
         else:
             executor = MultiAgentExecutor(self.app_state.multi_model, self.app_state.domain_agents,
                 self.output_validator, self.app_state.domain_semaphore)

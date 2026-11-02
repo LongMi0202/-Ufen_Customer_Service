@@ -69,6 +69,8 @@ order领域只确认订单本身状态和消费积分，不用get_order附带的
 SUCCESS代表本任务的必要查询已成功且足以回答；部分失败PARTIAL；需要用户补条件NEEDS_CLARIFICATION；全失败FAILED。
 direct=true时提供candidate_reply（AgentOutput），和summary保持一致；direct=false时candidate_reply=null，避免重复撰写用户回复，summary控制在400字内。
 顶层business_facts及knowledge_references完整绑定summary事实，缺失信息单独列出，不在summary重复整段用户问题。
+summary只列本任务已查询的事实，不逐条回答原问题、不重复其他领域的状态词，也不写“无法确认某订单已取消”之类跨域说明。
+direct=false表示主控已拆好任务：其他领域不属于当前goal，不把它们写入missing_information/required_domains，只报告当前goal确实缺少的条件。
 领域候选回复只写本任务查证的事实，不提前回答用户原问题中的其他领域部分，不以用户问题中的状态词作为已验证事实。
 操作建议只输出白名单意图，不提供自造URL。没有可靠事实时不能输出SUCCESS。
 """ + ACTION_CATALOG.render_action_index()

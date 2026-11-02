@@ -89,7 +89,7 @@ class TurnProcessor:
         try:
             if prepared:
                 # a) 校验快照版本是否过期了，如果要过期了，cancel_run 如果没有过期 调用 commit_run
-                if not await self._validate_before_commit(request_data['turn_id'], run_id):
+                if not await self._validate_before_commit(request_data['turn_id'], run_id, request_data.get("turn_attempt")):
                     await self.ai_gateway.cancel_run(token, run_id)
                     return run_id, None
                 # b) 调用commit_run
@@ -104,7 +104,8 @@ class TurnProcessor:
 
     async def _validate_before_commit(self,
                                       turn_id: str,
-                                      run_id: str
+                                      run_id: str,
+                                      expected_attempt: int | None = None
                                       ) -> bool:
 
         async  with session_factory() as session:
@@ -115,6 +116,9 @@ class TurnProcessor:
 
             # 2. 解包
             turn, conversation = turn_and_conversation
+
+            if turn.status != "RUNNING" or (expected_attempt is not None and turn.attempts != expected_attempt):
+                return False
 
             if run_id:
                 turn.run_id = run_id

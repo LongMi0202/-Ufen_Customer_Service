@@ -156,6 +156,7 @@ td small { color: var(--muted); font-size: 13px; }
 .metrics article:first-child strong { color: var(--cyan); text-shadow: 0 0 20px rgba(80,220,234,.24); }
 .audit-grid { display: grid; grid-template-columns: minmax(0, 1.13fr) minmax(365px, .87fr); gap: 15px; align-items: start; }
 .runs, .inspection { overflow: hidden; }
+.runs .panel-title select { border: 1px solid var(--line-hot); padding: 7px; color: var(--ink); background: var(--panel-2); font-size: 12px; }
 .run-row { width: 100%; border: 0; border-bottom: 1px solid var(--line); padding: 13px 17px; display: grid; grid-template-columns: minmax(0, 1fr) auto 72px; gap: 12px; align-items: center; color: var(--ink); background: transparent; text-align: left; }
 .run-row:hover { background: rgba(80,220,234,.045); }
 .run-row > span:first-child { min-width: 0; display: grid; gap: 3px; }

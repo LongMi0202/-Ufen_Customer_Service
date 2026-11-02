@@ -35,6 +35,9 @@ function domainLabel(domain) {
   </div>
 </template>
 <style scoped>
-.task-card{margin:18px 0;padding:16px;border:1px solid #dbe5df;border-radius:12px;background:#fafcfb}
+.task-card{margin:18px;padding:14px;border:1px solid var(--line-hot);border-radius:4px;background:var(--panel-2);color:var(--ink)}
+.task-card .panel-title{min-height:42px;padding:8px;gap:12px}.task-card p{font-size:12px;line-height:1.7;color:var(--muted)}
+.task-card .tool-call{margin:12px 0}.task-card .tool-call small{float:none;display:block;margin-top:6px}
+.inspection>details{margin:12px 18px}
 pre{max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}summary{cursor:pointer;margin:12px 0}dd{overflow-wrap:anywhere}
 </style>
